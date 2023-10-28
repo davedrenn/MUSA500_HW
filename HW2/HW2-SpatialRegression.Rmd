@@ -1,29 +1,128 @@
 ---
-title: "HW2-SpatialRegression"
+title: "Homework 2 - Spatial Regression"
+author: "Richard Barad, Jarred Randall, Dave Drennan"
 output: pdf_document
 date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r import_libraries}
+library(sf)
+library(tidyverse)
+library(kableExtra)
+library(spatialreg)
+library(spdep)
+library(gridExtra)
 ```
 
-## Including Plots
+```{r read_data echo=FALSE}
 
-You can also embed plots, for example:
+data <- st_read('./Data/RegressionData.shp')
 
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Spatial Autocorrelation
+
+# Global Moran's I
+
+Map of dependant variable
+
+``` {r dependant_variable_map}
+
+ggplot()+
+  geom_sf(data=data,aes(fill=LNMEDHVAL))+
+  scale_fill_viridis_c(option='rocket',direction=-1)+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.8, 0.2))
+```
+
+Get queen nieghboors for each census block group
+
+```{r queen_neighboors, results='hide'}
+
+queen<-spdep::poly2nb(data, row.names=data$POLY_ID)
+summary(queen)
+```
+
+# Global Moran's I
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+
+queenlist<-nb2listw(queen, style = 'W')
+
+moran_val <- moran(data$LNMEDHVAL, queenlist, n=length(queenlist$neighbours), S0=Szero(queenlist))$`I` 
+
+moranMC<-moran.mc(data$LNMEDHVAL, queenlist, nsim=999, alternative="two.sided")  #We use 999 permutations
+moranMC
+
+moranMCres<-moranMC$res
+
+moranMCres<-moranMC$res
+hist(moranMCres, freq=10000000, nclass=100)+
+xlim(-1,1)
+
+#Draws distribution of Moran's I's calculated from randomly permuted values
+# Here, we draw a red vertical line at the observed value of our Moran's I
+
+ggplot()+
+  geom_histogram(aes(moranMCres),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=moran_val,color='red',linewidth=1)+
+  labs(x="Moran's I value")
+
+```
+
+This is ugly, we can try to do it in ggplot latter if we have time!! I am also not sure if we need this based on the directions. It was in r markdown, but might not be needed. Let me know what you think!
+
+```{r MoransIplot}
+moran.plot(data$LNMEDHVAL, queenlist,labels=FALSE) 
+```
+
+# Local Moran's I
+
+```{r localmoransI}
+#Run local moran's I (LISA) 
+
+LISA<-localmoran(data$LNMEDHVAL, queenlist)
+data_LISA <-cbind(data, as.data.frame(LISA))
+
+quadrant<-vector(mode='numeric', length=323)
+m.prop<-data$LNMEDHVAL - mean(data$LNMEDHVAL)
+m.local<-LISA[,1]-mean(LISA[,1])
+quadrant[m.prop >0 & m.local>0]<-'4' #high MEDHHINC, high clustering
+quadrant[m.prop <0 & m.local<0]<-'1' #low MEDHHINC, low clustering
+quadrant[m.prop <0 & m.local>0]<-'2' #low MEDHINC, high clustering
+quadrant[m.prop >0 & m.local<0]<-'3' #high MEDHHINC, low clustering
+quadrant[LISA[,5]>0.05]<-0
+
+data_LISA <-cbind(data, as.data.frame(LISA), as.data.frame(quadrant))
+```
+
+
+```{r Morans_I_map warning=FALSE, message=FALSE, cache=FALSE}
+grid.arrange(ncol=2,
+             
+ggplot()+
+  geom_sf(data=data_LISA,aes(fill=quadrant))+
+  scale_fill_manual(values=c('grey80','lightblue','blue','pink','red'),
+                    labels=c("Insignificant","Low-High","Low-Low","High-Low","High-High"),
+                    name='Significant Cluster')+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.8, 0.2)),
+
+ggplot()+
+  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
+  scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
+                    labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
+                    name='p-score')+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.8, 0.2))
+)
+```
