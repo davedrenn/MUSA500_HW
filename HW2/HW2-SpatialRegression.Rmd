@@ -20,6 +20,7 @@ library(gridExtra)
 library(whitestrap)
 library(lmtest)
 library(tseries)
+library(spgwr)
 ```
 
 ```{r read_data echo=FALSE}
@@ -32,9 +33,9 @@ data <- st_read('./Data/RegressionData.shp')
 
 ## Global Moran's I
 
-Map of dependant variable
+Map of dependent variable
 
-``` {r dependant_variable_map}
+``` {r dependent_variable_map}
 
 ggplot()+
   geom_sf(data=data,aes(fill=LNMEDHVAL))+
@@ -44,7 +45,7 @@ ggplot()+
         legend.position = c(0.8, 0.2))
 ```
 
-Get queen nieghboors for each census block group
+Get queen neighbors for each census block group
 
 ```{r queen_neighboors, results='hide'}
 
@@ -171,5 +172,70 @@ ggplot()+
   geom_histogram(data=data,aes(x=stdres),bins=100,color='white',fill='grey50')+
   labs(x='Standardized residual')+
   theme_bw()
+
+```
+
+# Spatial Lag Regression
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+lagreg<-lagsarlm(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT, data=data, queenlist)
+summary(lagreg)
+LR.Sarlm(lagreg, reg) #Here lagreg is the SL output; reg is the OLS output
+#Prints the results of the Breusch-Pagan Test to assess whether heteroscedasticity is present (package: lmtest)
+bptest.Sarlm(lagreg, studentize=FALSE)
+#Prints the results of the Koenker-Bassett Test (also known as the Studentized Breusch-Pagan Test) to assess whether heteroscedasticity is present (package: lmtest)
+bptest.Sarlm(lagreg)       
+#Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
+jarque.bera.test(lagreg$residuals)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+reslag<-lagreg$residuals
+lagMoranMc<-moran.mc(reslag, queenlist,999, alternative="two.sided")
+lagMoranMc
+```
+
+# Spatial Error Regression
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+errreg<-errorsarlm(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT, data=data, queenlist)
+reserr<-residuals(errreg)
+errresnb<-sapply(queen, function(x) mean(reserr[x]))
+summary(errreg)
+LR.Sarlm(errreg, reg)
+#Prints the results of the Breusch-Pagan Test to assess whether heteroscedasticity is present (package: lmtest)
+bptest.Sarlm(errreg, studentize=FALSE)
+#Prints the results of the Koenker-Bassett Test (also known as the Studentized Breusch-Pagan Test) to assess whether heteroscedasticity is present (package: lmtest)
+bptest.Sarlm(errreg)       
+#Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
+jarque.bera.test(errreg$residuals)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+errMoranMc<-moran.mc(reserr, queenlist, 999, alternative="two.sided")
+errMoranMc
+```
+
+# GWR
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+#Setting an adaptive bandwidth
+datas <- as(data, 'Spatial')  #These analyses are easier to do when the data are of the SpatialPolygonsDataFrame class
+class (datas)
+bw<-gwr.sel(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT, 
+            data=datas,
+            method = "aic",
+            adapt = TRUE)
+bw
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT,
+              data=datas,
+              adapt = bw, #adaptive bandwidth determined by proportion of observations accounted for
+              gweight=gwr.Gauss,
+              se.fit=TRUE, #to return local standard errors
+              hatmatrix = TRUE)
+gwrmodel
 
 ```
