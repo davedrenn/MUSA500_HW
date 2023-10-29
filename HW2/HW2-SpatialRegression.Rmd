@@ -17,6 +17,9 @@ library(kableExtra)
 library(spatialreg)
 library(spdep)
 library(gridExtra)
+library(whitestrap)
+library(lmtest)
+library(tseries)
 ```
 
 ```{r read_data echo=FALSE}
@@ -25,9 +28,9 @@ data <- st_read('./Data/RegressionData.shp')
 
 ```
 
-## Spatial Autocorrelation
+# Spatial Autocorrelation
 
-# Global Moran's I
+## Global Moran's I
 
 Map of dependant variable
 
@@ -49,8 +52,6 @@ queen<-spdep::poly2nb(data, row.names=data$POLY_ID)
 summary(queen)
 ```
 
-# Global Moran's I
-
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 
 queenlist<-nb2listw(queen, style = 'W')
@@ -64,7 +65,8 @@ ggplot()+
   geom_histogram(aes(moranMC$res),binwidth = 0.005)+
   xlim(-1,1)+
   geom_vline(xintercept=moranMC$statistic,color='red',linewidth=1)+
-  labs(x="Moran's I value")
+  labs(x="Moran's I value")+
+  theme_bw()
 
 ```
 
@@ -74,7 +76,7 @@ This is ugly, we can try to do it in ggplot latter if we have time!! I am also n
 moran.plot(data$LNMEDHVAL, queenlist,labels=FALSE) 
 ```
 
-# Local Moran's I
+## Local Moran's I
 
 ```{r localmoransI}
 #Run local moran's I (LISA) 
@@ -116,4 +118,58 @@ ggplot()+
   theme(panel.background = element_rect(fill='white'),
         legend.position = c(0.8, 0.2))
 )
+```
+
+# A Review of OLS Regression and Assumptions: 
+
+## Results	
+
+```{r ols_regression}
+
+reg <-lm(LNMEDHVAL ~  PCTVACANT + PCTSINGLES + PCTBACHMOR + LNNBELPOV, data=data)
+
+summary(reg)
+```
+
+## Heteroscedasticity tests
+
+```{r hetersecadsticity tests}
+#Prints the results of the Breusch-Pagan Test to assess whether heteroscedasticity is present (package: lmtest)
+bptest(reg, studentize=FALSE)
+#Prints the results of the Koenker-Bassett Test (also known as the Studentized Breusch-Pagan Test) to assess whether heteroscedasticity is present (package: lmtest)
+bptest(reg)       
+#Prints the results of the White Test to assess whether heteroscedasticity is present (package: whitestrap)
+white_test(reg)
+```
+
+```{r scatter_plot}
+
+data <- data %>%
+  mutate(predictions = predict(fit,data),
+        residual = LNMEDHVAL - predictions,
+        stdres = rstandard(fit))
+
+ggplot()+
+  geom_point(data=data,aes(x=predictions,y=stdres),size=0.4
+             )+
+  labs(x='Predicted Values',y='Standardized Residuals')+
+  ggtitle('Predicted Values vs. Standardized Residuals')+
+  theme_bw()
+
+```
+
+## normality of errors (Jarque-Bera test)
+
+``` {r jarque_bera_test}
+#Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
+jarque.bera.test(data$residual)
+```
+
+``` {r histogram}
+
+ggplot()+
+  geom_histogram(data=data,aes(x=stdres),bins=100,color='white',fill='grey50')+
+  labs(x='Standardized residual')+
+  theme_bw()
+
 ```
