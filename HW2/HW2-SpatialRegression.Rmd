@@ -55,24 +55,15 @@ summary(queen)
 
 queenlist<-nb2listw(queen, style = 'W')
 
-moran_val <- moran(data$LNMEDHVAL, queenlist, n=length(queenlist$neighbours), S0=Szero(queenlist))$`I` 
-
 moranMC<-moran.mc(data$LNMEDHVAL, queenlist, nsim=999, alternative="two.sided")  #We use 999 permutations
-moranMC
-
-moranMCres<-moranMC$res
-
-moranMCres<-moranMC$res
-hist(moranMCres, freq=10000000, nclass=100)+
-xlim(-1,1)
 
 #Draws distribution of Moran's I's calculated from randomly permuted values
 # Here, we draw a red vertical line at the observed value of our Moran's I
 
 ggplot()+
-  geom_histogram(aes(moranMCres),binwidth = 0.005)+
+  geom_histogram(aes(moranMC$res),binwidth = 0.005)+
   xlim(-1,1)+
-  geom_vline(xintercept=moran_val,color='red',linewidth=1)+
+  geom_vline(xintercept=moranMC$statistic,color='red',linewidth=1)+
   labs(x="Moran's I value")
 
 ```
