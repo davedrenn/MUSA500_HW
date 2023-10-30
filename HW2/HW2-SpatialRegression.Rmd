@@ -192,7 +192,6 @@ ggplot(data=data,aes(x=stdres,y=resnb))+
   labs(x='Standardized Residuals',y='Spatially Lagged Standardized Residuals')+
   ggtitle('Standardized Resiudals vs Lagged Standardized Residuals')+
   theme_bw()
-
 ```
 ## Morans I Permutation Results
 
@@ -210,7 +209,6 @@ ggplot()+
   annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC_OLSres$statistic,2))))+
   labs(x="Moran's I value",y='Count')+
   theme_bw()
-
 ```
 
 # Spatial Lag Regression
@@ -231,6 +229,15 @@ jarque.bera.test(lagreg$residuals)
 reslag<-lagreg$residuals
 lagMoranMc<-moran.mc(reslag, queenlist,999, alternative="two.sided")
 lagMoranMc
+
+ggplot()+
+  geom_histogram(aes(lagMoranMc$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=lagMoranMc$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(lagMoranMc$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
 ```
 
 # Spatial Error Regression
@@ -252,6 +259,15 @@ jarque.bera.test(errreg$residuals)
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 errMoranMc<-moran.mc(reserr, queenlist, 999, alternative="two.sided")
 errMoranMc
+
+ggplot()+
+  geom_histogram(aes(errMoranMc$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=errMoranMc$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(errMoranMc$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
 ```
 
 # GWR
