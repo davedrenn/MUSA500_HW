@@ -146,9 +146,9 @@ white_test(reg)
 ```{r scatter_plot}
 
 data <- data %>%
-  mutate(predictions = predict(fit,data),
+  mutate(predictions = predict(reg,data),
         residual = LNMEDHVAL - predictions,
-        stdres = rstandard(fit))
+        stdres = rstandard(reg))
 
 ggplot()+
   geom_point(data=data,aes(x=predictions,y=stdres),size=0.4
