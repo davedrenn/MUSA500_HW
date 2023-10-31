@@ -33,18 +33,6 @@ data <- st_read('./Data/RegressionData.shp')
 
 ## Global Moran's I
 
-Map of dependent variable
-
-``` {r dependent_variable_map}
-
-ggplot()+
-  geom_sf(data=data,aes(fill=LNMEDHVAL))+
-  scale_fill_viridis_c(option='rocket',direction=-1)+
-  theme_void()+
-  theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2))
-```
-
 ```{r queen_neighboors, results='hide'}
 queen<-spdep::poly2nb(data, row.names=data$POLY_ID)
 ```
@@ -89,8 +77,28 @@ data_LISA <-cbind(data, as.data.frame(LISA), as.data.frame(quadrant))
 ```
 
 
-```{r Morans_I_map warning=FALSE, message=FALSE, cache=FALSE}
-grid.arrange(ncol=2,
+```{r Morans_I_map, warning=FALSE, message=FALSE, cache=FALSE, fig.height = 6,fig.width=10}
+grid.arrange(ncol=3,
+             
+ggplot()+
+  geom_sf(data=data,aes(fill=LNMEDHVAL))+
+  scale_fill_viridis_c(option='rocket',direction=-1)+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Natural Log of Median Home Value"),
+
+ggplot()+
+  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
+  scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
+                    labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
+                    name='p value')+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Local Morans I (p value)"),
              
 ggplot()+
   geom_sf(data=data_LISA,aes(fill=quadrant))+
@@ -99,16 +107,9 @@ ggplot()+
                     name='Significant Cluster')+
   theme_void()+
   theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2)),
-
-ggplot()+
-  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
-  scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
-                    labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
-                    name='p-score')+
-  theme_void()+
-  theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2))
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Significant Clusters of High/Low Values")
 )
 ```
 
