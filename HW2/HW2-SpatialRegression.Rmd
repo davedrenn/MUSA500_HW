@@ -9,6 +9,19 @@ date: "`r Sys.Date()`"
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
+# Introduction
+
+# Methods
+
+## A Description of the Concept of Spatial Autocorrelation 
+
+## A Review of OLS Regression and Assumptions
+
+## Spatial Lag and Spatial Error Regression
+
+## Geographically Weighted Regression
+
+# Results
 
 ```{r import_libraries}
 library(sf)
@@ -21,6 +34,7 @@ library(whitestrap)
 library(lmtest)
 library(tseries)
 library(spgwr)
+library(tmap)
 ```
 
 ```{r read_data echo=FALSE}
@@ -29,29 +43,17 @@ data <- st_read('./Data/RegressionData.shp')
 
 ```
 
-# Spatial Autocorrelation
-
-## Global Moran's I
-
-Map of dependent variable
-
-``` {r dependent_variable_map}
-
-ggplot()+
-  geom_sf(data=data,aes(fill=LNMEDHVAL))+
-  scale_fill_viridis_c(option='rocket',direction=-1)+
-  theme_void()+
-  theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2))
-```
-
 ```{r queen_neighboors, results='hide'}
 queen<-spdep::poly2nb(data, row.names=data$POLY_ID)
-```
-
-```{r warning=FALSE, message=FALSE, cache=FALSE}
 
 queenlist<-nb2listw(queen, style = 'W')
+```
+
+## Spatial Autocorrelation
+
+### Global Moran's I
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
 
 moranMC<-moran.mc(data$LNMEDHVAL, queenlist, nsim=999, alternative="two.sided")  #We use 999 permutations
 
@@ -68,7 +70,7 @@ ggplot()+
 
 ```
 
-## Local Moran's I
+### Local Moran's I
 
 ```{r localmoransI}
 #Run local moran's I (LISA) 
@@ -89,8 +91,28 @@ data_LISA <-cbind(data, as.data.frame(LISA), as.data.frame(quadrant))
 ```
 
 
-```{r Morans_I_map warning=FALSE, message=FALSE, cache=FALSE}
-grid.arrange(ncol=2,
+```{r Morans_I_map, warning=FALSE, message=FALSE, cache=FALSE, fig.height = 6,fig.width=10}
+grid.arrange(ncol=3,
+             
+ggplot()+
+  geom_sf(data=data,aes(fill=LNMEDHVAL))+
+  scale_fill_viridis_c(option='rocket',direction=-1)+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Natural Log of Median Home Value"),
+
+ggplot()+
+  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
+  scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
+                    labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
+                    name='p value')+
+  theme_void()+
+  theme(panel.background = element_rect(fill='white'),
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Local Morans I (p value)"),
              
 ggplot()+
   geom_sf(data=data_LISA,aes(fill=quadrant))+
@@ -99,22 +121,15 @@ ggplot()+
                     name='Significant Cluster')+
   theme_void()+
   theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2)),
-
-ggplot()+
-  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
-  scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
-                    labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
-                    name='p-score')+
-  theme_void()+
-  theme(panel.background = element_rect(fill='white'),
-        legend.position = c(0.8, 0.2))
+        legend.position = c(0.80, 0.21),
+        plot.title = element_text(hjust = 0.5))+
+  ggtitle("Significant Clusters of High/Low Values")
 )
 ```
 
-# A Review of OLS Regression and Assumptions: 
+## A Review of OLS Regression and Assumptions: 
 
-## OLS Results
+### OLS Results
 
 ```{r ols_regression}
 
@@ -123,7 +138,7 @@ reg <-lm(LNMEDHVAL ~  PCTVACANT + PCTSINGLES + PCTBACHMOR + LNNBELPOV, data=data
 summary(reg)
 ```
 
-## Heteroscedasticity tests
+### Heteroscedasticity tests
 
 ```{r hetersecadsticity tests}
 #Prints the results of the Breusch-Pagan Test to assess whether heteroscedasticity is present (package: lmtest)
@@ -151,7 +166,7 @@ ggplot()+
 
 ```
 
-## Normality of errors (Jarque-Bera test)
+### Normality of errors (Jarque-Bera test)
 
 ``` {r jarque_bera_test}
 #Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
@@ -167,9 +182,7 @@ ggplot()+
 
 ```
 
-## Spatial Autocorelation Checks
-
-### Morans I plot 1
+### Morans I plot
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 
@@ -192,19 +205,9 @@ ggplot(data=data,aes(x=stdres,y=resnb))+
   labs(x='Standardized Residuals',y='Spatially Lagged Standardized Residuals')+
   ggtitle('Standardized Resiudals vs Lagged Standardized Residuals')+
   theme_bw()
-
 ```
 
-### Morans I plot 1 Option 2
-
-This is the code he gave us to the the Moran's I plot. This looks quite ugly and is hard to read so I decided to to do the plot using ggplot which resulted in the code above. I am little concerned that the location of the points in the ggplot graph do not quite match what we get in this plot. Would like to discuss which one we use!
-
-```{r warning=FALSE, message=FALSE, cache=FALSE}
-
-moran.plot(data$resnb, queenlist)
-```
-
-## Morans I Permutation Results
+### Morans I Permutation Results
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 
@@ -220,10 +223,11 @@ ggplot()+
   annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC_OLSres$statistic,2))))+
   labs(x="Moran's I value",y='Count')+
   theme_bw()
-
 ```
 
-# Spatial Lag Regression
+## Spatial Lag and Spatial Error Regressions
+
+### Spatial Lag Regression
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 lagreg<-lagsarlm(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT, data=data, queenlist)
@@ -237,13 +241,24 @@ bptest.Sarlm(lagreg)
 jarque.bera.test(lagreg$residuals)
 ```
 
+#### Spatial Lag Moran's I Results
+
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 reslag<-lagreg$residuals
 lagMoranMc<-moran.mc(reslag, queenlist,999, alternative="two.sided")
 lagMoranMc
+
+ggplot()+
+  geom_histogram(aes(lagMoranMc$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=lagMoranMc$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(lagMoranMc$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
 ```
 
-# Spatial Error Regression
+### Spatial Error Regression
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 errreg<-errorsarlm(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT, data=data, queenlist)
@@ -259,12 +274,23 @@ bptest.Sarlm(errreg)
 jarque.bera.test(errreg$residuals)
 ```
 
+#### Spatial Error Moran's I Results
+
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 errMoranMc<-moran.mc(reserr, queenlist, 999, alternative="two.sided")
 errMoranMc
+
+ggplot()+
+  geom_histogram(aes(errMoranMc$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=errMoranMc$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(errMoranMc$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
 ```
 
-# GWR
+## Geographically Weighted Regression
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 #Setting an adaptive bandwidth
@@ -277,6 +303,7 @@ bw<-gwr.sel(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT,
 bw
 ```
 
+
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT,
               data=datas,
@@ -287,3 +314,77 @@ gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACAN
 gwrmodel
 
 ```
+
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+summary(gwrmodel$SDF)
+```
+
+
+### Geographically Weighted Regression Moran's I Results
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+
+gwrMoranMc<-moran.mc(gwrmodel$SDF@data$gwr.e, queenlist, 999, alternative="two.sided")
+
+gwrMoranMc  #We use 999 permutations
+
+#Draws distribution of Moran's I's calculated from randomly permuted values
+# Here, we draw a red vertical line at the observed value of our Moran's I
+
+ggplot()+
+  geom_histogram(aes(moranMC_OLSres$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=moranMC_OLSres$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC_OLSres$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
+```
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+gwrresults<-as.data.frame(gwrmodel$SDF)
+
+data$coefLNNBELPOVst<-gwrresults$LNNBELPOV/gwrresults$LNNBELPOV_se
+data$coefPCTBACHMORst<-gwrresults$PCTBACHMOR/gwrresults$PCTBACHMOR_se
+data$coefPCTSINGLESst<-gwrresults$PCTSINGLES/gwrresults$PCTSINGLES_se
+data$coefPCTVACANTst<-gwrresults$PCTVACANT/gwrresults$PCTVACANT_se
+
+coefLNNBELPOV<-tm_shape(data)+
+  tm_fill(col='coefLNNBELPOVst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of LNNBELPOV', 
+          palette ='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Number Below Poverty (Log)')
+
+coefPCTBACHMOR<-tm_shape(data)+
+  tm_fill(col='coefPCTBACHMORst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTBACHMOR', 
+          palette='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percentage of Bachelors or Higher')
+
+coefPCTSINGLES<-tm_shape(data)+
+  tm_fill(col='PCTSINGLES', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTSINGLES', 
+          palette='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percentage of Single Family Houses')
+
+coefPCTVACANT<-tm_shape(data)+
+  tm_fill(col='coefPCTVACANTst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTVACANT', 
+          palette='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percentage of Housing Vacant')
+
+tmap_arrange(coefLNNBELPOV,coefPCTBACHMOR, coefPCTSINGLES, coefPCTVACANT, ncol=2)
+```
+
+### Local R2 Map
+
+```{r local R2 map}
+
+data$localR2 <- gwrmodel$SDF$localR2
+
+tm_shape(data)+
+  tm_fill(col='localR2',  breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), n=5, palette = 'Blues')+
+  tm_layout(frame=FALSE)
+
+
+```
+
