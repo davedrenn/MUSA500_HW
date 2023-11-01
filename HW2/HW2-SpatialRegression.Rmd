@@ -21,6 +21,7 @@ library(whitestrap)
 library(lmtest)
 library(tseries)
 library(spgwr)
+library(tmap)
 ```
 
 ```{r read_data echo=FALSE}
@@ -294,3 +295,71 @@ gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACAN
 gwrmodel
 
 ```
+
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+summary(gwrmodel$SDF)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+
+gwrMoranMc<-moran.mc(gwrmodel$SDF@data$gwr.e, queenlist, 999, alternative="two.sided")
+
+gwrMoranMc  #We use 999 permutations
+
+#Draws distribution of Moran's I's calculated from randomly permuted values
+# Here, we draw a red vertical line at the observed value of our Moran's I
+
+ggplot()+
+  geom_histogram(aes(moranMC_OLSres$res),binwidth = 0.005)+
+  xlim(-1,1)+
+  geom_vline(xintercept=moranMC_OLSres$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC_OLSres$statistic,2))))+
+  labs(x="Moran's I value",y='Count')+
+  theme_bw()
+
+```
+
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+gwrresults<-as.data.frame(gwrmodel$SDF)
+datas$coefPCTVACANTst<-gwrresults$PCTVACANT/gwrresults$PCTVACANT_se
+datas$coefPCTBACHMORst<-gwrresults$PCTBACHMOR/gwrresults$PCTBACHMOR_se
+datas$coefPCTSINGLESst<-gwrresults$PCTSINGLES/gwrresults$PCTSINGLES_se
+datas$coefLNNBELPOVst<-gwrresults$LNNBELPOV/gwrresults$LNNBELPOV_se
+
+
+datas$gwrE<-gwrresults$gwr.e
+datas$localR2<-gwrresults$localR2
+
+coefLNNBELPOV<-tm_shape(datas)+
+  tm_fill(col='coefLNNBELPOVst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of coefLNNBELPOV', 
+          palette ='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Number of Households Below Poverty Line (Log)')
+
+coefPCTVACANT<-tm_shape(datas)+
+  tm_fill(col='coefPCTVACANTst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTVACANT', 
+          palette='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percentage of Vacant Housing')
+
+coefPCTSINGLES<-tm_shape(datas)+
+  tm_fill(col='coefPCTSINGLESst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of coefPCTSINGLES', 
+          palette ='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percentage of Single Family Houses')
+
+coefPCTBACHMOR<-tm_shape(datas)+
+  tm_fill(col='coefPCTBACHMORst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of coefPCTBACHMOR', 
+          palette ='-RdBu')+
+  tm_layout(frame=FALSE, title = 'Percent of Bachelor’s Degree')
+
+tmap_arrange(coefPCTBACHMOR, coefPCTVACANT,coefLNNBELPOV,coefPCTSINGLES,  ncol=2)
+
+```
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+tm_shape(datas)+
+  tm_fill(col='localR2',  breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), n=5, palette = 'Blues')+
+  tm_layout(frame=FALSE)
+```
+
