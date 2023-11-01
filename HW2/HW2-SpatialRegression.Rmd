@@ -35,7 +35,6 @@ library(lmtest)
 library(tseries)
 library(spgwr)
 library(tmap)
-
 ```
 
 ```{r read_data echo=FALSE}
@@ -314,37 +313,44 @@ gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACAN
               hatmatrix = TRUE)
 gwrmodel
 
-gwrmodel<-as.data.frame(gwrmodel$SDF)
-
-
 ```
+
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+summary(gwrmodel$SDF)
+```
+
 
 ### Geographically Weighted Regression Moran's I Results
 
-```{r gwr resid}
+```{r warning=FALSE, message=FALSE, cache=FALSE}
 
-resgwr<-gwrmodel$gwr.e
-gwrMoranMc<-moran.mc(resgwr, queenlist,999, alternative="two.sided")
-gwrMoranMc
+gwrMoranMc<-moran.mc(gwrmodel$SDF@data$gwr.e, queenlist, 999, alternative="two.sided")
+
+gwrMoranMc  #We use 999 permutations
+
+#Draws distribution of Moran's I's calculated from randomly permuted values
+# Here, we draw a red vertical line at the observed value of our Moran's I
 
 ggplot()+
-  geom_histogram(aes(gwrMoranMc$res),binwidth = 0.005)+
+  geom_histogram(aes(moranMC_OLSres$res),binwidth = 0.005)+
   xlim(-1,1)+
-  geom_vline(xintercept=gwrMoranMc$statistic,color='red',linewidth=1)+
-  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(gwrMoranMc$statistic,2))))+
+  geom_vline(xintercept=moranMC_OLSres$statistic,color='red',linewidth=1)+
+  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC_OLSres$statistic,2))))+
   labs(x="Moran's I value",y='Count')+
   theme_bw()
 
 ```
 
-### Standardized Coefficients Map
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
+gwrresults<-as.data.frame(gwrmodel$SDF)
 
-data$coefLNNBELPOVst<-gwrmodel$LNNBELPOV/gwrmodel$LNNBELPOV_se
-data$coefPCTBACHMORst<-gwrmodel$PCTBACHMOR/gwrmodel$PCTBACHMOR_se
-data$coefPCTSINGLESst<-gwrmodel$PCTSINGLES/gwrmodel$PCTSINGLES_se
-data$coefPCTVACANTst<-gwrmodel$PCTVACANT/gwrmodel$PCTVACANT_se
+data$coefLNNBELPOVst<-gwrresults$LNNBELPOV/gwrresults$LNNBELPOV_se
+data$coefPCTBACHMORst<-gwrresults$PCTBACHMOR/gwrresults$PCTBACHMOR_se
+data$coefPCTSINGLESst<-gwrresults$PCTSINGLES/gwrresults$PCTSINGLES_se
+data$coefPCTVACANTst<-gwrresults$PCTVACANT/gwrresults$PCTVACANT_se
 
 coefLNNBELPOV<-tm_shape(data)+
   tm_fill(col='coefLNNBELPOVst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of LNNBELPOV', 
@@ -378,6 +384,7 @@ data$localR2 <- gwrmodel$SDF$localR2
 tm_shape(data)+
   tm_fill(col='localR2',  breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), n=5, palette = 'Blues')+
   tm_layout(frame=FALSE)
+
 
 ```
 
