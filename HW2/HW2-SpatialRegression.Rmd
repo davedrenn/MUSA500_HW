@@ -166,7 +166,7 @@ ggplot()+
 
 ```
 
-## Normality of errors (Jarque-Bera test)
+### Normality of errors (Jarque-Bera test)
 
 ``` {r jarque_bera_test}
 #Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
@@ -304,7 +304,6 @@ bw
 ```
 
 
-
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT,
               data=datas,
@@ -377,6 +376,7 @@ tmap_arrange(coefLNNBELPOV,coefPCTBACHMOR, coefPCTSINGLES, coefPCTVACANT, ncol=2
 ```
 
 ### Local R2 Map
+
 ```{r local R2 map}
 
 data$localR2 <- gwrmodel$SDF$localR2
