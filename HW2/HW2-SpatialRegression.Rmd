@@ -35,7 +35,6 @@ library(lmtest)
 library(tseries)
 library(spgwr)
 library(tmap)
-
 ```
 
 ```{r read_data echo=FALSE}
@@ -167,7 +166,7 @@ ggplot()+
 
 ```
 
-## Normality of errors (Jarque-Bera test)
+### Normality of errors (Jarque-Bera test)
 
 ``` {r jarque_bera_test}
 #Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
@@ -247,7 +246,6 @@ jarque.bera.test(lagreg$residuals)
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 reslag<-lagreg$residuals
 lagMoranMc<-moran.mc(reslag, queenlist,999, alternative="two.sided")
-lagMoranMc
 
 ggplot()+
   geom_histogram(aes(lagMoranMc$res),binwidth = 0.005)+
@@ -293,7 +291,7 @@ ggplot()+
 
 ## Geographically Weighted Regression
 
-```{r warning=FALSE, message=FALSE, cache=FALSE}
+```{r warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
 #Setting an adaptive bandwidth
 datas <- as(data, 'Spatial')  #These analyses are easier to do when the data are of the SpatialPolygonsDataFrame class
 class (datas)
@@ -301,9 +299,7 @@ bw<-gwr.sel(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACANT,
             data=datas,
             method = "aic",
             adapt = TRUE)
-bw
 ```
-
 
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
@@ -315,18 +311,26 @@ gwrmodel<-gwr(formula=LNMEDHVAL ~ LNNBELPOV + PCTBACHMOR + PCTSINGLES + PCTVACAN
               hatmatrix = TRUE)
 gwrmodel
 
-gwrmodel<-as.data.frame(gwrmodel$SDF)
+```
+### Akaike Information Criteria (AIC)
+``` {r AIC_table}
 
+aic_vector = c(gwrmodel$results$AICh, lagreg$AIC_lm.model,525.48,754.985)
+analysis_vector = c("GWR","OLS","Spatial Lag","Spatial Error")
+
+data.frame(analysis_vector,aic_vector) %>%
+  kbl(col.names=c("Model","AIC")) %>%
+  kable_classic_2()
 
 ```
-
 ### Geographically Weighted Regression Moran's I Results
 
-```{r gwr resid}
+```{r warning=FALSE, message=FALSE, cache=FALSE}
 
-resgwr<-gwrmodel$gwr.e
-gwrMoranMc<-moran.mc(resgwr, queenlist,999, alternative="two.sided")
-gwrMoranMc
+gwrMoranMc<-moran.mc(gwrmodel$SDF@data$gwr.e, queenlist, 999, alternative="two.sided")
+
+#Draws distribution of Moran's I's calculated from randomly permuted values
+# Here, we draw a red vertical line at the observed value of our Moran's I
 
 ggplot()+
   geom_histogram(aes(gwrMoranMc$res),binwidth = 0.005)+
@@ -338,46 +342,46 @@ ggplot()+
 
 ```
 
-### Standardized Coefficients Map
 
-```{r warning=FALSE, message=FALSE, cache=FALSE}
+```{r warning=FALSE, message=FALSE, cache=FALSE,fig.width=11, fig.height=8}
+gwrresults<-as.data.frame(gwrmodel$SDF)
 
-data$coefLNNBELPOVst<-gwrmodel$LNNBELPOV/gwrmodel$LNNBELPOV_se
-data$coefPCTBACHMORst<-gwrmodel$PCTBACHMOR/gwrmodel$PCTBACHMOR_se
-data$coefPCTSINGLESst<-gwrmodel$PCTSINGLES/gwrmodel$PCTSINGLES_se
-data$coefPCTVACANTst<-gwrmodel$PCTVACANT/gwrmodel$PCTVACANT_se
+data$coefLNNBELPOVst<-gwrresults$LNNBELPOV/gwrresults$LNNBELPOV_se
+data$coefPCTBACHMORst<-gwrresults$PCTBACHMOR/gwrresults$PCTBACHMOR_se
+data$coefPCTSINGLESst<-gwrresults$PCTSINGLES/gwrresults$PCTSINGLES_se
+data$coefPCTVACANTst<-gwrresults$PCTVACANT/gwrresults$PCTVACANT_se
 
 coefLNNBELPOV<-tm_shape(data)+
-  tm_fill(col='coefLNNBELPOVst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of LNNBELPOV', 
+  tm_fill(col='coefLNNBELPOVst', breaks=c(-Inf, -2, 0, 2, Inf), title='Standardized coef. of LNNBELPOV', 
           palette ='-RdBu')+
   tm_layout(frame=FALSE, title = 'Number Below Poverty (Log)')
 
 coefPCTBACHMOR<-tm_shape(data)+
-  tm_fill(col='coefPCTBACHMORst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTBACHMOR', 
+  tm_fill(col='coefPCTBACHMORst', breaks=c(-Inf, -2, 0, 2, Inf), title='Standardized coef. of PCTBACHMOR', 
           palette='-RdBu')+
-  tm_layout(frame=FALSE, title = 'Percentage of Bachelors or Higher')
+  tm_layout(frame=FALSE, title = 'Pct. of Bachelors or Higher')
 
 coefPCTSINGLES<-tm_shape(data)+
-  tm_fill(col='PCTSINGLES', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTSINGLES', 
+  tm_fill(col='coefPCTSINGLESst', breaks=c(-Inf, -2, 0, 2, Inf), title='Standardized coef. of PCTSINGLES', 
           palette='-RdBu')+
-  tm_layout(frame=FALSE, title = 'Percentage of Single Family Houses')
+  tm_layout(frame=FALSE, title = 'Pct. of Single Family Houses')
 
 coefPCTVACANT<-tm_shape(data)+
-  tm_fill(col='coefPCTVACANTst', breaks=c(-Inf, -6, -4, -2, 0, 2, 4, 6, Inf), title='Standardized coefficient of PCTVACANT', 
+  tm_fill(col='coefPCTVACANTst', breaks=c(-Inf, -2, 0, 2, Inf), title='Standardized coef. of PCTVACANT', 
           palette='-RdBu')+
-  tm_layout(frame=FALSE, title = 'Percentage of Housing Vacant')
+  tm_layout(frame=FALSE, title = 'Pct. of Housing Vacant')
 
 tmap_arrange(coefLNNBELPOV,coefPCTBACHMOR, coefPCTSINGLES, coefPCTVACANT, ncol=2)
 ```
 
 ### Local R2 Map
-```{r local R2 map}
+
+```{r local R2 map, warning=False, message=False}
 
 data$localR2 <- gwrmodel$SDF$localR2
 
 tm_shape(data)+
-  tm_fill(col='localR2',  breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7), n=5, palette = 'Blues')+
+  tm_fill(col='localR2',  breaks=c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 1), n=7, palette = 'YlOrBr')+
   tm_layout(frame=FALSE)
-
 ```
 
