@@ -34,6 +34,7 @@ In our previous report, we used Ordinary Least Squares (OLS) regression to regre
 Spatial autocorrelation, stemming from temporal autocorrelation (values of a variable at points close in time will be related), describes the relationship for a single variable between the value for the variable at a specific location and at nearby locations. This concept is closely related to Waldo Tobler's first law of geography, which states that "Everything is related to everything else, but near things are more related than distant things." When spatial autocorrelation is present, values of a variable in nearby areas are related to each other and are not independent. Positive spatial correlation is present if observations that are closer to each other in space have similar values. Conversely, negative spatial autocorrelation can be observed if observations that are closer to each other have noticeably different values.
 
 Spatial autocorrelation emphasizes the importance of spatial proximity in understanding the relationships and interactions between geographical features or phenomena. Spatial proximity, delineated through aerial data using polygons, aims to determine the spatial associations between each polygon and all other polygons. There are two main approaches for measuring proximity: distance-based measures of proximity and contiguity-based measures of proximity. Distance-based measures check whether polygon centroids (the centers of gravity of the polygons) are within a certain distance of each other (1=yes, 0=no), whereas contiguity-based measures check whether polygons share a boundary with each other (1=yes, 0=no).
+
 ### Moran’s I
 
 Moran's I is a widely used method of testing for spatial autocorrelation in a dataset. A Moran’s I value close to 1 indicates strong positive autocorrelation, signifying that similar values tend to cluster together. Large negative values close to -1 suggest the presence of strong negative spatial autocorrelation, indicating that areas with similar values of a variable tend to repel each other (i.e., dispersion). Values around 0 indicate that there is no spatial autocorrelation present (i.e., random pattern). The formula for Moran’s I is stated as:
@@ -53,7 +54,9 @@ The components of the Moran’s I formula are defined as where:
 
 Weight matrices serve as a fundamental tool in spatial analysis that establish a structured framework that defines the neighboring relationships for each location within the spatial dataset. By assigning specific weights, the matrix quantifies the strength or intensity of the connections between pairs of spatial units, allowing for a comprehensive exploration of the spatial relationships present in the data. 
 
-Weight matrices are created when we have $n$ observations and form an $n x n$ table which summarizes all the pairwise relationships in the dataset. These weight matrices are used in the estimation of spatial regression and the calculation of spatial autocorrelation indices. While different types of weight matrices exist, this report primarily employs Cliff and Ord's queen’s matrix. Queen’s matrix, a contiguity-based measure of proximity which checks if polygons share a boundary, is found where polygons intersect at either a point or a segment. While this report will primarily utilize one specific weight matrix, it is common practice among statisticians to experiment with various types of weight matrices to ensure that the results are not purely an artifact of the matrix being used.
+Weight matrices are created when we have $n$ observations and form an $n x n$ table which summarizes all the pairwise relationships in the dataset. These weight matrices are used in the estimation of spatial regression and the calculation of spatial autocorrelation indices. While different types of weight matrices exist, this report primarily employs Cliff and Ord's queen’s matrix. Queen’s matrix is a contiguity-based measure of proximity which checks if polygons share a boundary at either a point or a segment. 
+
+While this report will primarily utilize one specific weight matrix, it is common practice among statisticians to experiment with various types of weight matrices to ensure that the results are not purely an artifact of the matrix being used.
 
 ### Moran’s I Significance Test
 
@@ -68,6 +71,7 @@ To test the significance of spatial autocorrelation we employ a permutation test
 Next, the pseudo p-value is calculated by taking the rank of Moran’s I and dividing it by $1000$. A high Pseudo P-value that is greater than Moran’s I of the LNMEDHVAL implies that no spatial autocorrelation is present under the assumption of spatial randomness, and we fail to reject the null hypothesis. Conversely, if the pseudo p-value is lower than that of the Moran’s I of LNMEDHVAL, significant spatial autocorrelation is present, and we can reject the null hypothesis of no spatial autocorrelation.
 
 ### Local Spatial Autocorrelation
+
 While global Moran’s I is effective in detecting spatial processes such as clustering and dispersion, it does not provide specific information about the precise locations of individual clusters or outliers within our overall dataset. For this information, we use local indices of spatial autocorrelation (LISA), which measure the degree to which values at neighboring locations are associated with the value at a specific site or location or to what extent are values at sites in vicinity of i associated with $i$. In local spatial autocorrelation (local Moran’s I), the significance testing involves shuffling or permuting the values of the variable $X$ among the various locations in the dataset while keeping the value at the specific location of interest (location $i$) unchanged. Typically, these reshufflings are performed multiple times, ranging from $9$ to $999$, and the $li$ value is computed for each location for every reshuffling. 
 
 The $li$ value for the original dataset is then ranked relative to the list of values generated by the reshuffling process. If the $li$ values for the original dataset are notably low or high in comparison to the list of results obtained through the shuffling process, they are deemed significant. A pseudo significance value is determined by noting the rank of the actual value of $li$ relative to the permuted results. Positive local spatial autocorrelation tells us of clustering of similar values near location $i$, while negative local spatial autocorrelation tells us that location i is a spatial outlier relative to neighboring locations.
@@ -78,9 +82,11 @@ Ordinary least square (OLS) regression is a statistical method used to examine t
 
 
 ### OLS Assumptions & Spatial Components
+
 When spatial components are present in the data, the OLS assumptions of independence of observations and homoscedasticity (randomness of errors) do not hold. When spatial autocorrelation is present the values of a variable in nearby areas are related to each other and are not independent. Additionally, if we have spatially autocorrelated OLS residuals, there is systemic under/over prediction in certain parts of the data: furthermore, the significance estimates for the beta coefficients ($β_i$) in OLS may be inflated. We can test these assumptions by examining the spatial autocorrelation of the residual using Moran’s I.
 
 Another way to test OLS residuals for spatial autocorrelation is to regress them on nearby residuals. In this report, these nearby residuals are residuals at neighboring block groups, as defined by the queen matrix. The first step is to generate standardized OLS residuals by dividing the OLS model residuals by an estimate of their standard deviation. Then, we regress the OLS standardized residuals on the spatial lag of the OLS residuals (i.e., OLS residuals at the queen's neighbor). This test produces the beta coefficient ($β_i$) of the lagged residuals which is referred to as slope b.
+
 ### Testing Regression Assumptions
 
 This report utilizes the open-source statistical software R to conduct our OLS regressions, which offers various methods for testing OLS assumptions, including assessments of homoscedasticity and the normality of errors. When we violate the assumption of homoscedasticity, which is tied to assumption of independence of errors, we have heteroscedasticity. Heteroscedasticity is the variance in the residual that may change with the values of another variable. We can test heteroscedasticity in R using the following:
@@ -246,7 +252,7 @@ ggplot()+
   geom_histogram(aes(moranMC$res),binwidth = 0.005)+
   xlim(-1,1)+
   geom_vline(xintercept=moranMC$statistic,color='red',linewidth=1)+
-  annotate("text",x=0.6, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC$statistic,2))))+
+  annotate("text",x=0.4, y=150,color='red',label=paste("Moran's I = ",as.character(round(moranMC$statistic,2))))+
   labs(x="Moran's I value",y='Count')+
   theme_bw()
 
@@ -254,7 +260,7 @@ ggplot()+
 
 ### Local Moran's I
 
-The Local Moran's I results are presented using maps of the local Moran’s I p-values and a significant cluster map. These maps reveal distinct patterns within the spatial distribution of the variable of interest LNMEDHVAL. We consider clusters to be significant if the p-value of the local Moran’s I is greater than $0.05$. 
+The Local Moran's I results are presented using maps of the local Moran’s I p-values and a significant cluster map. These maps reveal distinct patterns within the spatial distribution of the variable of interest LNMEDHVAL. We consider clusters to be significant if the local Moran’s I p value is less than $0.05$. 
 
 The 'not significant' areas represent regions where no significant spatial clustering or outliers were identified, suggesting a relatively homogeneous spatial pattern. 
 
@@ -287,7 +293,7 @@ data_LISA <-cbind(data, as.data.frame(LISA), as.data.frame(quadrant))
 grid.arrange(ncol=3,
    		 
 ggplot()+
-  geom_sf(data=data,aes(fill=LNMEDHVAL))+
+  geom_sf(data=data,aes(fill=LNMEDHVAL),linewidth=0.2,color='grey60')+
   scale_fill_viridis_c(option='rocket',direction=-1)+
   theme_void()+
   theme(panel.background = element_rect(fill='white'),
@@ -296,7 +302,7 @@ ggplot()+
   ggtitle("Natural Log of Median Home Value"),
 
 ggplot()+
-  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))))+
+  geom_sf(data=data_LISA,aes(fill = cut(Pr.z....E.Ii.., breaks = c(0,0.01,0.05,0.5,1))),linewidth=0.2,color='grey60')+
   scale_fill_manual(values = c('#990000','#ef6548','#fdbb84','#fef0d9'),
            		 labels=c('0 - 0.01','0.01 - 0.05','0.05 - 0.5','0.5 - 1'),
            		 name='p value')+
@@ -307,7 +313,7 @@ ggplot()+
   ggtitle("Local Morans I (p value)"),
    		 
 ggplot()+
-  geom_sf(data=data_LISA,aes(fill=quadrant))+
+  geom_sf(data=data_LISA,aes(fill=quadrant),linewidth=0.2,color='grey60')+
   scale_fill_manual(values=c('grey80','lightblue','blue','pink','red'),
            		 labels=c("Insignificant","Low-High","Low-Low","High-Low","High-High"),
            		 name='Significant Cluster')+
@@ -559,6 +565,8 @@ gwrmodel
 
 ```
 
+\newpage
+
 ### Akaike Information Criteria (AIC)
 
 The table below shows the AIC values for each of our four models. Models with a lower AIC value have a better fit. Based on the AIC values, we can conclude that the GWR model seems to be doing the best job predicting the natural log of the median home value.
@@ -569,6 +577,7 @@ analysis_vector = c("GWR","OLS","Spatial Lag","Spatial Error")
 
 data.frame(analysis_vector,aic_vector) %>%
   kbl(col.names=c("Model","AIC")) %>%
+  kable_styling(latex_options='hold_position') %>%
   kable_classic_2()
 ```
 
