@@ -6,7 +6,7 @@ output:
     latex_engine: xelatex
     toc: true
     toc_depth: 2
-date: "2023-11-13"
+date: "2023-11-14"
 mainfont: Times New Roman
 editor_options: 
   markdown: 
@@ -108,12 +108,12 @@ We use the open source software R to run a spatial lag regression and a spatial 
 The spatial lag regression model builds on the OLS regression model by associating nearby values of the dependent variable as a predictor in the model. We use a queen-neighbor weights matrix in our model to associate an individual median home value of a block group with nearby home value block groups. To account for this spatial lag of y in the model, the regression equation includes a y-lag variable with rho as a coefficient for each observation in the data set.
 
 $$LNMEDHVAL = \rho WLNMEDHVAL + \beta_0 + \beta1 PCTVACANT + \beta2 PCTSINGLES$$ 
-$$ +\ \beta3 PCTBACHMOR + \beta4 LNNBELPOV$$
-Spatial lag regression includes the spatial lag term of the dependent variable $y$ as a predictor in addition to the terms included in an OLS regression. The coefficient rho, denoted by $p$, is limited to a value between $-1$ and $1$. The predictor $Wy$ represents the weights matrix $W$ applied to the dependent variable $y$, which allows us to associate the nearby $ys$ with an individual observation. Taken together, rho and $Wy$ are the spatial lag of $y$ as a predictor for $y$.
+$$ +\ \beta3 PCTBACHMOR + \beta4 LNNBELPOV + \epsilon$$
+Spatial lag regression includes the spatial lag term of the dependent variable $y$ (e.g. LNMEDHVAL) as a predictor in addition to the terms included in an OLS regression. The coefficient rho, denoted by $p$, is limited to a value between $-1$ and $1$. The predictor $Wy$ represents the weights matrix $W$ applied to the dependent variable $y$, which allows us to associate the nearby $ys$ (the log of median home values in nearby Census block groups) with an individual observation. Taken together, rho and $Wy$ are the spatial lag of $y$ as a predictor for $y$.
 
 The coefficient $\beta_i$ of each predictor is more complicated to interpret for spatial lag models compared to OLS regression models. Our interpretation of the spatial lag model will focus on when the lag regression term is positive or negative.
 
-The variable epsilon, denoted by $\epsilon$, is commonly referred to as the residual term or random error term in the model. The residual term allows the regression surface to fall above ($\epsilon > 0$) or below ($\epsilon < 0$) the actual data points. Epsilon is the difference between observed values of y and the values of y predicted by the regression model (denoted by $\hat{y}$).
+The variable epsilon, denoted by $\epsilon$, is commonly referred to as the residual term or random error term in the model. The residual term allows the regression surface to fall above ($\epsilon > 0$) or below ($\epsilon < 0$) the actual data points. Epsilon is the difference between observed values of $y$ (e.g. LNMEDHVAL) and the values of $y$ predicted by the regression model (denoted by $\hat{y}$).
 
 ### Spatial Error
 
@@ -122,7 +122,7 @@ The spatial error regression model also builds on the OLS regression model by as
 $$LNMEDHVAL = \beta_0 + \beta1 PCTVACANT + \beta2 PCTSINGLES$$
 $$+\ \beta3 PCTBACHMOR + \beta4 LNNBELPOV + \lambda W\epsilon + u$$
 
-Spatial error regression includes the spatial error term of the lagged residuals as a predictor that replaces the epsilon term in OLS regression. The coefficient lambda, denoted by $\lambda$ (lambda), is limited to a value between $-1$ and $1$. If the term is significant, the closer the data set is to being spatially autocorrelated. The predictor $W\epsilon$ represents the weights matrix $W$ applied to the residual term from the initial regression run on the data set. Taken together, lambda and the spatial lag of the residual term make up the spatially lagged residuals as a predictor for $y$. Through this process of filtering out the spatial information from the residual terms of $y$, we are left with some leftover value denoted by u which represents random noise in the data.
+Spatial error regression includes the spatial error term of the lagged residuals as a predictor that replaces the epsilon term in OLS regression. The coefficient lambda, denoted by $\lambda$ (lambda), is limited to a value between $-1$ and $1$. If the term is significant, the closer the data set is to being spatially autocorrelated. The predictor $W\epsilon$ represents the weights matrix $W$ applied to the residual term from the initial regression run on the data set. Taken together, lambda and the spatial lag of the residual term make up the spatially lagged residuals as a predictor for $y$ (e.g. LNMEDHVAL). Through this process of filtering out the spatial information from the residual terms of $y$, we are left with some leftover value denoted by $u$ which represents random noise in the data.
 
 The Beta coefficient $\beta_i$ of each predictor is interpreted in the same way as OLS regression – the amount by which the dependent variable changes as the independent variable increases by one unit, holding all other independent variables constant. The sign indicates whether the relationship between the dependent variable and the independent variables is positive (direct) or negative (inverse). It is important to look at the sign and value of the $\beta_i$ when the coefficient is statistically significant and different from zero. The $\beta_i$ is considered statistically significant and different from zero when the p-value falls below our alpha threshold of 0.05.
 
@@ -177,11 +177,11 @@ Running a local regression instead of a global regression can help mitigate the 
 The equation for GWR equation used in our analysis is written for each observation as:
 
 $$LNMEDHVAL_i = \beta_{i0} + \beta_{i1} {PCTVACANT}_{i} + \beta_{i2} {PCTSINGLES}_{i}$$
-$$+\ \beta_{i3} {PCTBACHMORE}_{i} + \beta_{i4} {LNNBELBOV}_{i} + \epsilon_i$$
+$$+\ \beta_{i3} {PCTBACHMOR}_{i} + \beta_{i4} {LNNBELPOV}_{i} + \epsilon_i$$
 
 The equation closely resembles the equation for an OLS regression.
 
-$\beta_{i0}$ is the value of the dependent value ($y$) when all predictors (${x}_{i1}$ to $x_{i4}$) are equal to 0. $\beta_{i1}$ to $\beta_{i4}$ represent the amount that the dependent variable changes by when the specified independent variable increases by one unit, holding all other independent variables constant. $\epsilon_i$ is the residual term or error. The subscript $i$ is included in front of each term to indicate the regression equation is describing the relationship between $y$ and the predictors around the location of $i$. The relationship is specific to location $i$.
+$\beta_{i0}$ is the value of the dependent value ($y$) (e.g. LNMEDHVAL) when all predictors (${x}_{i1}$ to $x_{i4}$) (e.g. PCTVACANT, PCTSINGLES, PCTBACHMOR, LNNBELPOV) are equal to 0. $\beta_{i1}$ to $\beta_{i4}$ represent the amount that the dependent variable changes by when the specified independent variable increases by one unit, holding all other independent variables constant. $\epsilon_i$ is the residual term or error. The subscript $i$ is included in front of each term to indicate the regression equation is describing the relationship between $y$ and the predictors around the location of $i$. The relationship is specific to location $i$.
 
 To run a regression for each location, we need to have multiple observations. GWR uses data for neighboring observations in the regression. Neighboring observations are weighted according to their proximity to the location being analyzed and points which are closer to the location are given higher weights. In other words, observations which are closer to location $i$ have a stronger influence on the coefficient estimates for that location $i$.
 
@@ -484,6 +484,7 @@ ggplot()+
   theme_bw()
 
 ```
+
 ### Spatial Error Regression
 
 The spatial error regression model includes a separate line of results that provide the lambda value of $0.81$ and the p-value for this spatial error term. Our p-value is close to $0$, which means our spatial error term is significant - as a result, we can say that the residuals of median home values in an area are associated with the residuals of nearby median home values.
