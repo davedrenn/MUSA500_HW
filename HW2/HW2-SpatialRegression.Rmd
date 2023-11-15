@@ -463,6 +463,7 @@ bptest.Sarlm(lagreg)
 #Prints the results of the Jarque-Bera Test to assess whether residuals are normal (package: tseries)
 jarque.bera.test(lagreg$residuals)
 ```
+
 #### Spatial Lag Moran's I Results
 
 The Moran’s I value of the spatial lag model is $-0.08$. The negative Moran’s I value and the p-value of $0.002$ lead us to conclude that negative spatial autocorrelation is present in the spatial lag model residuals. However, the p-value of $-0.08$ is still a large improvement over the Moran’s I value of the OLS model which was $0.31$. The spatial lag model better accounts for spatial autocorrelation in the data and shows less spatial autocorrelation in the residuals compared to the OLS model. 
@@ -669,7 +670,7 @@ While GWR does have a lowest AIC, the model performance is mixed and the predict
 
 Spatially weighted residuals (i.e., spatially lagged) are the residuals from a regression model that have been adjusted for spatial autocorrelation. These residuals are weighted based on a spatial weights matrix (Queen’s neighbor). Spatially lagged residuals show how observations may be related to neighboring observations. In contrast a spatial lag model directly incorporates spatial dependence into regression through a spatially lagged dependent variable. Meaning, that the dependent variable for one observation is explained not only by its own predictors but also by the values of the dependent variable for its neighbors. The residuals from a spatial lag model are the differences between the observed values of the dependent variable and the values predicted by the model, which includes this spatially lagged dependent variable. Spatial lag model residuals are expected to show less spatial autocorrelation than ordinary least squares residuals because the model itself accounts for spatial dependence.
 
-ArcGIS Pro, an industry standard for GIS and spatial analysis, is problematic to use for GWR models because it uses unclear methodologies to run the regression and returns either unhelpful or nonsensical results. Instead of an AIC value, ArcGIS Pro only returns an AIC corrected (AICc) value, which cannot be used to compare with AIC outputs for other regression methods. ArcGIS Pro optimizes bandwidth for the model using a confusing methodology called Golden search, and can return outputs that include negative R^2 values, which should be instead bounded between zero and one. Other tools, such as R, are a more consistent and appropriate choice to use when developing a GWR model.
+ArcGIS Pro, an industry standard for GIS and spatial analysis, is problematic to use for GWR models because it uses unclear methodologies to run the regression and returns either unhelpful or nonsensical results. Instead of an AIC value, ArcGIS Pro only returns an AIC corrected (AICc) value, which cannot be used to compare with AIC outputs for other regression methods. ArcGIS Pro optimizes bandwidth for the model using a confusing methodology called Golden search, and can return outputs that include negative $R^2$ values, which should be instead bounded between zero and one. Other tools, such as R, are a more consistent and appropriate choice to use when developing a GWR model.
 
 
 
