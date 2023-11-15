@@ -391,8 +391,7 @@ ggplot()+
 
 ### Moran's I Plot
 
-By regressing the standardized residuals on the spatially lagged residuals we can see that the beta coefficient (slope b) of the lagged residual is $0.312$. As the lagged residual changes by $1$ unit, the standardized residual changes by $0.312$ units. This is a key indicator of spatial autocorrelation, which suggests that nearby or neighboring residuals are similar. When this coefficient is significantly different from zero, it means that there's a statistically significant spatial autocorrelation in the residuals of the model. In our analysis, the p-value for the beta coefficient (slope b) is close to zero which leads us to conclude that spatial autocorrelation is present as the residuals and that spatial lag of the residuals are statistically correlated. 
-
+By regressing the standardized residuals on the spatially lagged residuals we can see that the beta coefficient (slope b) of the lagged residual is $0.312$. As the lagged residual changes by $1$ unit, the standardized residual changes by $0.312$ units. This is a key indicator of spatial autocorrelation, which suggests that nearby or neighboring residuals are similar. When this coefficient is significantly different from zero, it means that there's a statistically significant spatial autocorrelation in the residuals of the model. In our analysis, the p-value for the beta coefficient (slope b) is close to zero which leads us to conclude that statistically significant positive correlation is present between the residuals and that spatial lag of the residuals. Thus, spatial autocorrelation is present in the OLS residuals.
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 
