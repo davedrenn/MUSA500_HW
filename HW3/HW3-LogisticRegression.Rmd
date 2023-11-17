@@ -6,5 +6,92 @@ output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+install.packages("aod")
+install.packages("ggplot2")
+install.packages("rms")
+install.packages("gmodels")
+install.packages("nnet")
+install.packages("DAAG")
+install.packages("ROCR")
+install.packages("xtable")
+
+library(aod)
+library(ggplot2)
+library(rms)
+library(gmodels)
+library(nnet)
+library(DAAG)
+library(ROCR)
+library(knitr)
+library(kableExtra)
+library(xtable)
+library(dplyr)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+data <- read.csv("./Data/LogisticRegressionData.csv")
+
+```
+
+## Proportion of Crashes Involving a Drinking Driver
+
+```{r}
+
+DRINKING_D.tab <- table(data$DRINKING_D)
+prop.table(DRINKING_D.tab)
+
+kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion"), 
+      caption = "Proportion of Crashes Involving a Drinking Driver") %>%
+  kable_styling(c("striped"), full_width = T, position = "left", font_size = 12)
+  
+
+```
+
+
+
+## cross-tabulation between our dependent variable and binary predictors -  need to figure out the best way to make the table he is asking for
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+
+# We need to figure out the best way to make the table he is asking for
+
+ct1 <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct2 <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct3 <- CrossTable(data$DRINKING_D, data$CELL_PHONE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct4 <- CrossTable(data$DRINKING_D, data$SPEEDING, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct5 <- CrossTable(data$DRINKING_D, data$AGGRESSIVE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct6 <- CrossTable(data$DRINKING_D, data$DRIVER1617, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+ct7 <- CrossTable(data$DRINKING_D, data$DRIVER65PLUS, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+
+
+table <- rbind(ct1, ct2, ct3, ct4, ct5, ct6, ct7)
+
+print(table)
+```
+
+## Chi-Square Test
+
+
+```{r}
+
+CrossTable(data$FATAL_OR_M, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$OVERTURNED, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$CELL_PHONE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$SPEEDING, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$AGGRESSIVE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$DRIVER1617, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+CrossTable(data$DRIVER65PLUS, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+    
+  
+  
 ```
