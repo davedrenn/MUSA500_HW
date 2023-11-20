@@ -43,29 +43,46 @@ kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion")
 
 
 
-## cross-tabulation between our dependent variable and binary predictors -  need to figure out the best way to make the table he is asking for
+## cross-tabulation between our dependent variable and binary predictors
 
-```{r warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
+```{r crosstab, warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
 
 # We need to figure out the best way to make the table he is asking for
 
 ct1_pct <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct2_pct <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct3_pct <- CrossTable(data$DRINKING_D, data$CELL_PHONE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct4_pct <- CrossTable(data$DRINKING_D, data$SPEEDING, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct5_pct <- CrossTable(data$DRINKING_D, data$AGGRESSIVE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct6_pct <- CrossTable(data$DRINKING_D, data$DRIVER1617, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
-
 ct7_pct <- CrossTable(data$DRINKING_D, data$DRIVER65PLUS, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
+
+ct1_n <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct2_n <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct3_n <- CrossTable(data$DRINKING_D, data$CELL_PHONE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct4_n <- CrossTable(data$DRINKING_D, data$SPEEDING, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct5_n <- CrossTable(data$DRINKING_D, data$AGGRESSIVE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct6_n <- CrossTable(data$DRINKING_D, data$DRIVER1617, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+ct7_n <- CrossTable(data$DRINKING_D, data$DRIVER65PLUS, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$t[3:4]
+```
+
+```{r chi_squared, warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
+ct_chi1 <- CrossTable(data$FATAL_OR_M, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi2 <- CrossTable(data$OVERTURNED, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi3 <- CrossTable(data$CELL_PHONE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi4 <- CrossTable(data$SPEEDING, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi5 <- CrossTable(data$AGGRESSIVE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi6 <- CrossTable(data$DRIVER1617, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+ct_chi7 <- CrossTable(data$DRIVER65PLUS, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)$chisq$p.value
+
+chi_vector <- c(ct_chi1, ct_chi2, ct_chi3, ct_chi4, ct_chi5, ct_chi6, ct_chi7)
+
+chi_table <- cbind(chi_vector,variable=c('FATAL_OR_M','OVERTURNED','CELL_PHONE','SPEEDING','AGGRESSIVE','DRIVER1617','DRIVER65PLUS')) %>%
+  as_data_frame()
 ```
 
 ```{r}
-df_cross_tab <- cbind(DRINKING_D = c(0,1),ct1_pct, ct2_pct, ct3_pct, ct4_pct, ct5_pct, ct6_pct, ct7_pct) %>%
+df_cross_tab_pct <- cbind(DRINKING_D = c(0,1),ct1_pct, ct2_pct, ct3_pct, ct4_pct, ct5_pct, ct6_pct, ct7_pct) %>%
   as_data_frame() %>%
   rename(FATAL_OR_M = ct1_pct,
          OVERTURNED = ct2_pct,
@@ -78,25 +95,36 @@ df_cross_tab <- cbind(DRINKING_D = c(0,1),ct1_pct, ct2_pct, ct3_pct, ct4_pct, ct
   spread(key=DRINKING_D, value=value) %>%
   rename("No_Drinking_pct" = "0",
          "Drinking_pct" = "1")
+
+
+cbind(DRINKING_D = c(0,1),ct1_n, ct2_n, ct3_n, ct4_n, ct5_n, ct6_n, ct7_n) %>%
+  as_data_frame() %>%
+  rename(FATAL_OR_M = ct1_n,
+         OVERTURNED = ct2_n,
+         CELL_PHONE = ct3_n,
+         SPEEDING = ct4_n,
+         AGGRESSIVE = ct5_n,
+         DRIVER1617 = ct6_n,
+         DRIVER65PLUS = ct7_n) %>%
+  gather(variable, value, -DRINKING_D) %>%
+  spread(key=DRINKING_D, value=value) %>%
+  rename("No_Drinking_n" = "0",
+         "Drinking_n" = "1") %>%
+  left_join(.,df_cross_tab_pct,by='variable') %>%
+  mutate(Total = No_Drinking_n + Drinking_n,
+         Drinking_pct = round(Drinking_pct * 100,2),
+         No_Drinking_pct = round(No_Drinking_pct * 100,2)) %>%
+  select(variable, No_Drinking_n, No_Drinking_pct, Drinking_n, Drinking_pct,Total) %>%
+  left_join(.,chi_table,by='variable') %>%
+  kbl(col.names = c('Variable','N','%','N','%','Total','χ2 p-value')) %>%
+  kable_classic_2() %>%
+  add_header_above(header=c(" "=1,"No Alchoal Involved (DRINKING_D=0)"=2,"Alchoal Involved (DRINKING_D=1)"=2, " "=2))
+
 ```
 
 
-## Chi-Square Test
 
-
-```{r}
-
-CrossTable(data$FATAL_OR_M, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$OVERTURNED, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$CELL_PHONE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$SPEEDING, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$AGGRESSIVE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$DRIVER1617, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-CrossTable(data$DRIVER65PLUS, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-```
-
-
-## Means
+## Calcuate Means for Continuous Variables
 
 ```{r}
 
