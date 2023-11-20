@@ -22,6 +22,7 @@ library(xtable)
 library(dplyr)
 library(tidyverse)
 library(corrr)
+library(crosstable)
 ```
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
@@ -122,8 +123,6 @@ cbind(DRINKING_D = c(0,1),ct1_n, ct2_n, ct3_n, ct4_n, ct5_n, ct6_n, ct7_n) %>%
 
 ```
 
-
-
 ## Calcuate Means for Continuous Variables
 
 ```{r}
@@ -168,4 +167,129 @@ predictors %>%
   correlate() %>% 
   autoplot() +
   geom_text(aes(label = round(r,digits=2)),size = 3)
+    
+```
+
+```{r logit model}
+
+logit = glm(formula = DRINKING_D ~ OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS + PCTBACHMOR + MEDHHINC, data = data, family = "binomial")
+
+summary(logit)
+
+exp(cbind(OR = coef(logit), confint(logit)))
+
+logitoutput <- summary(logit)
+
+logitcoeffs <- logitoutput$coefficients
+logitcoeffs
+
+or_ci <- exp(cbind(OR=coef(logit), confint(logit)))
+
+finallogitoutput <- cbind(logitcoeffs, or_ci)
+finallogitoutput
+
+```
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
+hist(fit)       #Histogram of fitted values
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+fit.binary = (fit>=0.02)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.03)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.05)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.07)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.08)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.09)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.1)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.15)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.2)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+fit.binary = (fit>=0.5)
+CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+
+```
+
+## ROC Curve
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+a <- cbind(data$DRINKING_D, fit)
+head(a)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+colnames(a) <- c("labels","predictions")
+head(a)
+roc <- as.data.frame(a)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+pred <- prediction(roc$predictions, roc$labels)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+roc.perf = performance(pred, measure = "tpr", x.measure="fpr")
+plot(roc.perf)
+abline(a=0,b=1)
+```
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+opt.cut = function(perf, pred){
+  cut.ind = mapply(FUN=function(x, y, p){
+    d = (x - 0)^2 + (y-1)^2
+    ind = which(d == min(d))
+    c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
+      cutoff = p[[ind]])
+  }, perf@x.values, perf@y.values, pred@cutoffs)
+}
+
+print(opt.cut(roc.perf, pred))
+```
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+auc.perf = performance(pred, measure ="auc")
+auc.perf@y.values
+```
+
+```{r logit model2}
+
+logit2 = glm(formula = DRINKING_D ~ OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS, data = data, family = "binomial")
+
+summary(logit2)
+
+exp(cbind(OR = coef(logit2), confint(logit2)))
+
+logitoutput2 <- summary(logit2)
+
+logitcoeffs2 <- logitoutput2$coefficients
+logitcoeffs2
+
+or_ci2 <- exp(cbind(OR=coef(logit2), confint(logit2)))
+
+finallogitoutput2 <- cbind(logitcoeffs2, or_ci2)
+finallogitoutput2
+
+```
+
+```{r AIC}
+
+AIC(logit, logit2)
 ```
