@@ -10,17 +10,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
-install.packages("aod")
-install.packages("ggplot2")
-install.packages("rms")
-install.packages("gmodels")
-install.packages("nnet")
-install.packages("DAAG")
-install.packages("ROCR")
-install.packages("xtable")
-
 library(aod)
-library(ggplot2)
 library(rms)
 library(gmodels)
 library(nnet)
@@ -30,6 +20,8 @@ library(knitr)
 library(kableExtra)
 library(xtable)
 library(dplyr)
+library(tidyverse)
+library(corrr)
 ```
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
@@ -42,12 +34,10 @@ data <- read.csv("./Data/LogisticRegressionData.csv")
 ```{r}
 
 DRINKING_D.tab <- table(data$DRINKING_D)
-prop.table(DRINKING_D.tab)
 
 kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion"), 
       caption = "Proportion of Crashes Involving a Drinking Driver") %>%
   kable_styling(c("striped"), full_width = T, position = "left", font_size = 12)
-  
 
 ```
 
@@ -55,29 +45,41 @@ kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion")
 
 ## cross-tabulation between our dependent variable and binary predictors -  need to figure out the best way to make the table he is asking for
 
-```{r warning=FALSE, message=FALSE, cache=FALSE}
+```{r warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
 
 # We need to figure out the best way to make the table he is asking for
 
-ct1 <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct1_pct <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct2 <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct2_pct <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct3 <- CrossTable(data$DRINKING_D, data$CELL_PHONE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct3_pct <- CrossTable(data$DRINKING_D, data$CELL_PHONE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct4 <- CrossTable(data$DRINKING_D, data$SPEEDING, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct4_pct <- CrossTable(data$DRINKING_D, data$SPEEDING, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct5 <- CrossTable(data$DRINKING_D, data$AGGRESSIVE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct5_pct <- CrossTable(data$DRINKING_D, data$AGGRESSIVE, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct6 <- CrossTable(data$DRINKING_D, data$DRIVER1617, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
+ct6_pct <- CrossTable(data$DRINKING_D, data$DRIVER1617, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 
-ct7 <- CrossTable(data$DRINKING_D, data$DRIVER65PLUS, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)
-
-
-table <- rbind(ct1, ct2, ct3, ct4, ct5, ct6, ct7)
-
-print(table)
+ct7_pct <- CrossTable(data$DRINKING_D, data$DRIVER65PLUS, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 ```
+
+```{r}
+df_cross_tab <- cbind(DRINKING_D = c(0,1),ct1_pct, ct2_pct, ct3_pct, ct4_pct, ct5_pct, ct6_pct, ct7_pct) %>%
+  as_data_frame() %>%
+  rename(FATAL_OR_M = ct1_pct,
+         OVERTURNED = ct2_pct,
+         CELL_PHONE = ct3_pct,
+         SPEEDING = ct4_pct,
+         AGGRESSIVE = ct5_pct,
+         DRIVER1617 = ct6_pct,
+         DRIVER65PLUS = ct7_pct) %>%
+  gather(variable, value, -DRINKING_D) %>%
+  spread(key=DRINKING_D, value=value) %>%
+  rename("No_Drinking_pct" = "0",
+         "Drinking_pct" = "1")
+```
+
 
 ## Chi-Square Test
 
@@ -91,7 +93,51 @@ CrossTable(data$SPEEDING, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chis
 CrossTable(data$AGGRESSIVE, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 CrossTable(data$DRIVER1617, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 CrossTable(data$DRIVER65PLUS, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
-    
-  
-  
+```
+
+
+## Means
+
+```{r}
+
+data_group_mean <- data %>% dplyr::select(DRINKING_D,PCTBACHMOR,MEDHHINC) %>%
+  group_by(DRINKING_D) %>% summarise_at(vars(PCTBACHMOR,MEDHHINC),mean) %>%
+  gather(key='variable', value='mean', -DRINKING_D) %>%
+  spread(key=DRINKING_D,value=mean) %>%
+  rename("No_Drinking_mean" = "0",
+         "Drinking_mean" = "1")
+
+data_group_sd <- data %>% dplyr::select(DRINKING_D,PCTBACHMOR,MEDHHINC) %>%
+  group_by(DRINKING_D) %>% summarise_at(vars(PCTBACHMOR,MEDHHINC),mean) %>%
+  gather(key='variable', value='sd', -DRINKING_D) %>%
+  spread(key=DRINKING_D,value=sd) %>%
+  rename("No_Drinking_sd" = "0",
+         "Drinking_sd" = "1")
+
+```
+
+```{r t_test}
+t_PCTBACHMORE <- t.test(data$PCTBACHMOR~data$DRINKING_D)$p.value
+t_MEDHHINC <- t.test(data$MEDHHINC~data$DRINKING_D)$p.value
+
+t_vector = c(t_MEDHHINC,t_PCTBACHMORE)
+
+cbind(data_group_mean,data_group_sd %>% dplyr::select(-variable),t_vector) %>%
+  select(variable, Drinking_mean, Drinking_sd, No_Drinking_mean, No_Drinking_sd,t_vector) %>%
+  kbl(col.names = c('Variable','Mean','SD','Mean','SD','t-test p-value')) %>%
+  kable_classic_2() %>%
+  add_header_above(header=c(" " = 1, "Drinking" = 2,"No Drinking"=2, " "=1))
+
+```
+
+## Correlation
+
+```{r pearson, echo=FALSE}
+
+predictors <- data %>% dplyr::select(-CRN,-AREAKEY,-DRINKING_D)
+
+predictors %>% 
+  correlate() %>% 
+  autoplot() +
+  geom_text(aes(label = round(r,digits=2)),size = 3)
 ```
