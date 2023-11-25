@@ -23,6 +23,7 @@ library(dplyr)
 library(tidyverse)
 library(corrr)
 library(crosstable)
+library(caret)
 ```
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
@@ -30,7 +31,9 @@ data <- read.csv("./Data/LogisticRegressionData.csv")
 
 ```
 
-## Proportion of Crashes Involving a Drinking Driver
+# Results
+
+## Exploratory Data Analyis
 
 ```{r}
 
@@ -42,9 +45,7 @@ kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion")
 
 ```
 
-
-
-## cross-tabulation between our dependent variable and binary predictors
+## cross-tabulation between dependent variable and binary predictors
 
 ```{r crosstab, warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
 
@@ -157,7 +158,7 @@ cbind(data_group_mean,data_group_sd %>% dplyr::select(-variable),t_vector) %>%
 
 ```
 
-## Correlation
+## Multicollinearity checks
 
 ```{r pearson, echo=FALSE}
 
@@ -170,61 +171,69 @@ predictors %>%
     
 ```
 
+## Logistic Model
+
+The table below shows the results of the logistic regression model which includes all nine predictors included. The statistically significant predictors are FATAL_OR_M, OVERTURNED, SPEEDING, AGGRESSIVE, DRIVER1617, and DRIVER65PLUS. We conclude these predictors are statistically significant because they have a p-value which is less than 0.05. The PCTBACHMOR and CELL_PHONE variables are not statistically significant.
+
 ```{r logit model}
 
-logit = glm(formula = DRINKING_D ~ OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS + PCTBACHMOR + MEDHHINC, data = data, family = "binomial")
+logit = glm(formula = DRINKING_D ~ FATAL_OR_M + OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS + PCTBACHMOR + MEDHHINC, data = data, family = "binomial")
 
 summary(logit)
+```
+We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio are shown below and the odds ratios are also presented in the OR column of the table below.
 
-exp(cbind(OR = coef(logit), confint(logit)))
+* **FATAL_OR_M**: The odds ratio is equal to $e^{-0.814014} = 2.25694878$. This means that holding all other predictors constant, the odds of the driver being drunk increases by a factor of 2.25694878 when a fatality or major injury occurs during an accident.   
 
+* **OVERTURNED**: The odds ratio is equal to $e^{-0.928914} = 2.53177687$. This means that holding all other predictors constant, the odds of the driver being drunk being drunk increases by a factor of 2.53177687 when a vehicle is overturned in an accident.
+
+* **CELL_PHONE**: The odds ratio is equal to $e^{-0.02955008} = 1.02999102$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 1.02999102 when a driver was using a cell phone during the accident.
+
+* **SPEEDING**: The odds ratio is equal to $e^{1.538976} = 4.65981462$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 4.65981462 when a driver was speeding during the accident. 
+
+* **AGGRESSIVE**: The odds ratio is equal to $e^{-0.05969159} = 0.55050681$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.55050681 when a driver was aggressive during the accident. 
+
+* **DRIVER1617**: The odds ratio is equal to $e^{-1.280296} = 0.27795502$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.27795502 when the crash involved at least one driver who is 16 or 17.  
+
+* **DRIVER65PLUS**: The odds ratio is equal to $e^{-0.7746646} = 0.46085831$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.46085831 when the crash involved at least one driver who is 65 or older.
+
+* **PCTBACHMORE**: The odds ratio is equal to $e^{-0.0003706336e-04} = 0.99962944$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.99962944 when the percent of 25+ year olds in the census block where the accident occurred goes up by 1%.
+
+* **MEDHHINC**: The odds ratio is equal to $e^{00000.2804492} = 1.00000280$. This means that holiding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 1.00000280 when the percent the median household income in the census block where the accident occured goes up by 1 USD. 
+
+```{r}
 logitoutput <- summary(logit)
 
-logitcoeffs <- logitoutput$coefficients
-logitcoeffs
-
 or_ci <- exp(cbind(OR=coef(logit), confint(logit)))
-
-finallogitoutput <- cbind(logitcoeffs, or_ci)
-finallogitoutput
+or_ci
 
 ```
+
+
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
+
 fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
 hist(fit)       #Histogram of fitted values
 ```
+```{r}
 
-```{r warning=FALSE, message=FALSE, cache=FALSE}
-fit.binary = (fit>=0.02)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+tresholds = c(0.02,0.03,0.05,00.07,0.08,0.09,0.1,0.15,0.2,0.5)
+sens = c()
+spec = c()
+mis_class = c()
 
-fit.binary = (fit>=0.03)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
+for (x in tresholds){
+  fit.binary = as.factor(ifelse(fit > x , 1, 0))
+  results <- caret::confusionMatrix(fit.binary, as.factor(data$DRINKING_D), positive = "1")
+  results_table <- results$table
+  sens <- append(sens,results$byClass[1])
+  spec <- append(spec,results$byClass[2])
+  mis_class <- append(mis_class, 1 - results$overall[1])}
 
-fit.binary = (fit>=0.05)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.07)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.08)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.09)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.1)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.15)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.2)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
-fit.binary = (fit>=0.5)
-CrossTable(fit.binary, data$DRINKING_D, prop.r=FALSE, prop.t=FALSE, prop.c=FALSE, prop.chisq=FALSE)
-
+cbind(tresholds,sens,spec,mis_class) %>%
+  as_data_frame() %>%
+  kbl(col.names=c("Treshold","Sensitivity","Specificty","Miss Classification Rate")) %>%
+  kable_classic_2()
 ```
 
 ## ROC Curve
