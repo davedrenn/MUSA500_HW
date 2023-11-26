@@ -181,7 +181,7 @@ logit = glm(formula = DRINKING_D ~ FATAL_OR_M + OVERTURNED + CELL_PHONE + SPEEDI
 
 summary(logit)
 ```
-We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio are shown below and the odds ratios are also presented in the OR column of the table below.
+We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio for each predictor are shown below and the odds ratios are also presented in the OR column of the table below. The SPEEDING predictor has the highest odds ratio. 
 
 * **FATAL_OR_M**: The odds ratio is equal to $e^{-0.814014} = 2.25694878$. This means that holding all other predictors constant, the odds of the driver being drunk increases by a factor of 2.25694878 when a fatality or major injury occurs during an accident.   
 
@@ -204,8 +204,10 @@ We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio i
 ```{r}
 logitoutput <- summary(logit)
 
-or_ci <- exp(cbind(OR=coef(logit), confint(logit)))
-or_ci
+or_ci <- exp(cbind(OR = coef(logit), confint(logit)))
+
+finallogitoutput <- cbind(logitoutput$coefficients,or_ci)
+finallogitoutput
 
 ```
 
@@ -215,6 +217,8 @@ or_ci
 fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
 hist(fit)       #Histogram of fitted values
 ```
+The table below shows the sensitivity, specificty, and miss classification rate for different tresholds. Overall, as the threshold increases our sensitivity and miss-classification rate decrease. As the threshold increases, the specifity also increases. The threshold with the lowest midd classification rate is 0.5 threshold. The threshold with the highest miss classification rate is 0.02. If we consider just the miss classification rate, the 0.50 threshold provides the best results.
+
 ```{r}
 
 tresholds = c(0.02,0.03,0.05,00.07,0.08,0.09,0.1,0.15,0.2,0.5)
@@ -226,38 +230,35 @@ for (x in tresholds){
   fit.binary = as.factor(ifelse(fit > x , 1, 0))
   results <- caret::confusionMatrix(fit.binary, as.factor(data$DRINKING_D), positive = "1")
   results_table <- results$table
-  sens <- append(sens,results$byClass[1])
-  spec <- append(spec,results$byClass[2])
-  mis_class <- append(mis_class, 1 - results$overall[1])}
+  sens <- append(sens,results$byClass[1] * 100)
+  spec <- append(spec,results$byClass[2]* 100)
+  mis_class <- append(mis_class, (1 - results$overall[1]) *100)}
 
 cbind(tresholds,sens,spec,mis_class) %>%
   as_data_frame() %>%
-  kbl(col.names=c("Treshold","Sensitivity","Specificty","Miss Classification Rate")) %>%
-  kable_classic_2()
+  kbl(col.names=c("Threshold","Sensitivity (%)","Specificty (%)","Miss Classification Rate (%)")) %>%
+  kable_classic_2() %>%
+  row_spec(row = 10, background = "yellow",bold=T)
 ```
 
 ## ROC Curve
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 a <- cbind(data$DRINKING_D, fit)
-head(a)
-```
-
-```{r warning=FALSE, message=FALSE, cache=FALSE}
 colnames(a) <- c("labels","predictions")
-head(a)
-roc <- as.data.frame(a)
-```
 
-```{r warning=FALSE, message=FALSE, cache=FALSE}
+roc <- as.data.frame(a)
 pred <- prediction(roc$predictions, roc$labels)
 ```
+
+The chart below shows the ROC Curve for our model. The ROC curve shows the true positive rate and negative rate at different thresholds. As the true positive rate (i.e: sensitivity) increases, the false positive rate also increases. The ROC curve shows that our model fit, is better than a random model as the curve is above the straight diagonal line through the box. However, the model's ROC is very far from a perfect fit. 
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 roc.perf = performance(pred, measure = "tpr", x.measure="fpr")
 plot(roc.perf)
 abline(a=0,b=1)
 ```
+We now use the minimum distance approach to determine the threshold where the distance from the top left hand corner to the ROC curve is lowest.
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 opt.cut = function(perf, pred){
