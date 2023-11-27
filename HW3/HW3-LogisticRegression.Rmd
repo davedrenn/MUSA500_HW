@@ -1,9 +1,18 @@
 ---
 title: "HW3-LogisticRegression"
 author: "Richard Barad, Dave Drennan, Jarred Randall"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
 date: "`r Sys.Date()`"
-output: pdf_document
+mainfont: Times New Roman
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
@@ -31,9 +40,96 @@ data <- read.csv("./Data/LogisticRegressionData.csv")
 
 ```
 
-# Results
+# Introduction
 
-## Exploratory Data Analyis
+# Methods
+
+Ordinary Leased Squared (OLS) regression works well when the dependent variable (Y) is continuous, and ideally normally distributed. OLS regression does work well when the dependent (Y) variable is binary (e.g: Yes/No, 1/0, True/False). OLS regression does not work well for binary dependent variables because the Beta Coefficients in OLS regression represent the amount the dependent variable changes by when a predictor changes by one unit. With a binary variable, Y is either one or zero so determining that a one unit increase in a predictor results in a Beta1 change in Y is not useful, when Y can only be one or zero. Additionally, OLS regression models for a binary variable could potentially result in Y values which are greater than one or below zero which is also not possible.   
+
+In order to use linear regression methods for a binary variable, it is necessary to apply a translator function to the model. The translator function converts the predicted Y to the probability that Y is equal to 1. The logistic function is a common translator function used for modeling binary variables and is the method we will use in our analysis.
+
+## Overview of Logit and Logistic Regression
+
+Before discussing the logistic regression formulas, it is first important to understand how odds are calculated. The formula for odds is: $\frac{Number\:of\:Desirable\:Outcomes}{Number\:of\:Undesirable\:Outcomes}$. For a binary dependent variable, the odds are equal to the Probability that Y=1 divided by the probability that Y=0 which can also be expressed as $p / 1- p$ in which p stands for the probability that Y=1. The odds are part of the logit regression formula.
+
+$$ln(\frac{p}{1-p}) = \beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC +\epsilon $$
+
+The equation above shows the logit regression formula. The quantity ln( p / 1- p) is called the log odds or logit and represents the log odds of the predicted dependent variable being a 1. The Beta0 coefficient is equal to the log odds of the dependent variable being a one when all independent variables are equal to zero. The beta coefficients numbered 1 through 7 represent the change in the log odds of the dependent variable when the indicated independent variable changes by one, while all other independent variables are held constant.
+
+If we solve for p, the equation above can also be written as:
+
+$$p = \frac{e^{\beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC}}{1 +e^{\beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC}}$$
+
+
+When written in this format, the equation is called the inverse logit or logistic function. Some statisticians will still call the equation in this format the logit function. In the logistic regression equation, the beta coefficients continue to represent the change in the log odds of the dependent variable when the indicated independent variable changes by one unit. P represents the probability that an outcome is equal to one. The logistic function is more frequently used than the logic version because it is easier to understand probability than log odds. 
+
+In the logistic function, when the exponent of e (euler's constant) is equal to 0 then p will be equal to 0.5. When the exponent of e is very large, p will approach one (but will never exceed one). When the exponent of e is very small, p will approach zero (but will never exceed zero). This structure makes the logistic function ideal for analyzing binary (i.e: 0/1 variables).  
+
+## Hypothesis Testing
+
+We perform the following hypothesis tests for each predictor:
+$H_o: beta_i = 0$
+$H_a: beta_i \neq 0$
+
+$beta_i$ is the coefficient for each predictor $i$.
+
+To test our hypotheses for significance in a logistic regression for binary predictors, we calculate the Wald statistic. The Wald statistic is equivalent to a z-score, which has a standard normal distribution. We calculate the Wald statistic for logistic regression using the following equation:
+
+$$(beta^_i - E(beta ^_i ))/\sigma_(beta ^_i ) =(beta ^_i - 0)/\sigma_(beta ^_i  ) =beta ^_i /\sigma_(beta ^_i  )$$ 
+
+$beta^_i$ is the coefficient for each predictor, and in the context of our hypothesis, the expected value $E$ for $beta^_i$ is 0. We divide the coefficient by the standard error $\sigma_beta ^_i$, which represents the Wald statistic and is equal to a z-score, which shows how many standard deviations the coefficient is from the expected value of $beta^_i$. Using the z-score and its normal distribution
+
+For logistic regression, most statisticians prefer to look at odds ratios instead of the estimated $beta$ coefficients. For the hypothesis tests, the null hypothesis $H_o$ can instead be tested for having an odds ratio $OR_i = 1$ and the alternative hypothesis $H_a$ can instead be tested for having an odds ratio $OR_i \neq 1$. Odds ratios are calculated by exponentiating the coefficients using the equation $e^beta_i$. If $beta_i$ is 0, as stated in our null hypothesis, $e^0$ equals 1. The odds ratio allows us to compare the binary outcomes of our variables.
+
+## Quality of Model Fit
+ 
+When assessing the quality of model fit in logistic regression, it's important to consider the limitations of metrics traditionally used for linear models, such as R-Squared. R-Squared can be computed for logistic regression, but it does not have the same interpretation as it does in OLS regression. In the context of logistic regression, R-Squared does not indicate the proportion of variance explained by the model. Rather, it measures the model's discriminative ability — how effectively it can distinguish between different outcome classes. A more appropriate approach for model comparison is the Akaike Information Criterion (AIC). The AIC is an estimator of relative quality among statistical models for a given set of data. It balances the goodness of fit of a model with its complexity, penalizing models with more parameters. A lower AIC indicates a better-fitting model, as it suggests that the model can explain the data well without being overly complex. Other metrics used in the evaluation logistic regression models are specificity, sensitivity, and the misclassification rate:
+ 
+Sensitivity (also referred to as the true positive rate) measures the proportion of actual positives that the model identifies and is complementary to the false negative rate. Sensitivity is calculated as the number of true positives (or TP is a test result that correctly indicates the presence of a condition or characteristic) divided by the sum of true positives and false negatives (or FN is a test result which wrongly indicates that a condition does not hold) the formula for sensitivity is:
+Sensitivity=
+True Positives /False Negatives + True Positives
+​
+ 
+Specificity (also referred to as the true negative rate) measures the proportion of negatives which the model identifies and is complementary to the false positive rate. It is calculated as the number of true negatives (or TN is a test result that correctly indicates the absence of a condition or characteristic) divided by the sum of true negatives and false positives (or FP is a result that indicates a given condition exists when it does not). The formula for specificity is stated as:
+ 
+Specificity = TN/TN+FN
+ 
+The Misclassification Rate is the proportion of total predictions that the model got wrong. It encompasses both types of errors: false positives and false negatives. It is calculated as the sum of false negatives and false positives divided by the total number of observations. The formula is stated as:
+Misclassification rate = FN+FP/Total Observations.
+In logistic regression, the fitted (predicted) values of y (i.e.,  ) are the predicted probabilities of the outcome being 1. A good model will assign a high probability that y=1 when y is 1. Likewise, a good model will assign a low probability to values of one and low probabilities that y=1 when y is 0.  is calculated with the following equation:
+
+
+When calculating the specificity, sensitivity, and misclassification rate it is important to use different cut-offs for what is considered a high probability of y=1.
+ 
+“ROC or Receiver Operating Characteristic “is a way to plot true positive rate (sensitivity) against false positive rate (i.e., 1- specificity). ROC curves can also be used to examine the predictive quality of the model. A cut-off value may be determined by optimizing sensitivity and specificity using the following methods: the Youden Index and minimum distance. The Youden Index identifies the cut-off probability that corresponds to the maximum possible sum of sensitivity and specificity. Whereas in minimum distance a cut-off for which the ROC curve has the minimum distance from the upper left corner of the graph (i.e., the point at which specificity and sensitivity =1). This report utilizes the minimum distance method.  The area under the ROC Curve, known as the AUC (area under the curve), is a metric for assessing the accuracy of a predictive model. It measures how effectively a model predicts 1 response as 1’s and 0 responses as 0’s. A higher AUC indicates that the model can find a cutoff value at which both sensitivity (true positive rate) and specificity (true negative rate) are comparatively high. The possible value ranges are between 0.5 (the area under the 45-degree line) and 1 (the area of the entire box). A rough guide for accuracy is:
+-        .90-1 = Excellent
+-        .80-.90 = Good
+-        .70-.80 = Fair
+-        .60-.70 = Poor
+-        .50-.60 = Fail
+ 
+## Assumptions of Logistic Regression
+ 
+In evaluating logistic regression models, understanding their underlying assumptions and how these differ from those in Ordinary Least Squares (OLS) regression is important. Both logistic regression and OLS require the independence of observations and the absence of multicollinearity (refer to “Assignment 1 – OLS Regression” for more detailed definitions of these assumptions). However, logistic regression diverges from OLS in several key aspects:
+ 
+ Binary Dependent Variable: The dependent variable in logistic regression must be binary, a fundamental difference from the continuous dependent variable in OLS.
+ Sample Size Requirement: Logistic regression typically requires larger sample sizes, with at least 50 observations per predictor. This is necessary to achieve stable and meaningful estimates, accounting for the model's complexity and the variability in binary outcomes.
+ Relationship Between Variables: Unlike OLS, logistic regression does not assume a linear relationship between the dependent and independent variables. Instead, it assumes a linear relationship between the log odds of the outcome being 1 (y=1) and the independent variables. However, this linear relationship is not commonly tested in practice.
+ Homoscedasticity: Logistic regression does not require the assumption of homoscedasticity, which is a key consideration in OLS.
+Normalization of Residuals: There is no requirement for the residuals to be normalized in logistic regression.
+
+
+## Logistic Regression Assumptions
+
+When conducting logistic regression analyses, some of the assumptions that must be met for OLS regression must also be met for logistic regression. These similar assumptions include independence of observations and no multicollinearity, or at least no severe multicollinearity for logistic regression. 
+
+However, several of the assumptions for OLS regression are not necessary for logistic regression. For logistic regression, the dependent variable must be binary instead of having a linear relationship with predictor variables, there is no assumption of homoscedasticity, residuals do not need to be normal, and there is also a much higher threshold for the number of observations in the samples - at minimum, 50 observations per predictor versus 10 per predictor in OLS regression. 
+
+
+
+## Results
+
+### Exploratory Data Analysis
 
 ```{r}
 
@@ -45,11 +141,9 @@ kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion")
 
 ```
 
-## cross-tabulation between dependent variable and binary predictors
+### cross-tabulation between dependent variable and binary predictors
 
 ```{r crosstab, warning=FALSE, message=FALSE, cache=FALSE, results='hide'}
-
-# We need to figure out the best way to make the table he is asking for
 
 ct1_pct <- CrossTable(data$DRINKING_D, data$FATAL_OR_M, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
 ct2_pct <- CrossTable(data$DRINKING_D, data$OVERTURNED, prop.r=FALSE, prop.t=FALSE, prop.chisq=FALSE)$prop.row[3:4]
@@ -124,7 +218,7 @@ cbind(DRINKING_D = c(0,1),ct1_n, ct2_n, ct3_n, ct4_n, ct5_n, ct6_n, ct7_n) %>%
 
 ```
 
-## Calcuate Means for Continuous Variables
+### Means for Continuous Variables
 
 ```{r}
 
@@ -158,7 +252,7 @@ cbind(data_group_mean,data_group_sd %>% dplyr::select(-variable),t_vector) %>%
 
 ```
 
-## Multicollinearity checks
+### Multicollinearity checks
 
 ```{r pearson, echo=FALSE}
 
@@ -171,9 +265,9 @@ predictors %>%
     
 ```
 
-## Logistic Model
+### Logistic Model
 
-The table below shows the results of the logistic regression model which includes all nine predictors included. The statistically significant predictors are FATAL_OR_M, OVERTURNED, SPEEDING, AGGRESSIVE, DRIVER1617, and DRIVER65PLUS. We conclude these predictors are statistically significant because they have a p-value which is less than 0.05. The PCTBACHMOR and CELL_PHONE variables are not statistically significant.
+The table below shows the results of the logistic regression model which includes all nine predictors included. The statistically significant predictors are FATAL_OR_M, OVERTURNED, SPEEDING, AGGRESSIVE, DRIVER1617, and DRIVER65PLUS. We conclude these predictors are statistically significant because they have a p-value which is less than 0.05. Because the p values are statistically significant we can reject the null hypothesis that the $\beta$ coefficients are equal to zero. The PCTBACHMOR and CELL_PHONE variables are not statistically significant.
 
 ```{r logit model}
 
@@ -182,6 +276,7 @@ logit = glm(formula = DRINKING_D ~ FATAL_OR_M + OVERTURNED + CELL_PHONE + SPEEDI
 logitoutput <- summary(logit)
 logitoutput
 ```
+
 We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio for each predictor are shown below and the odds ratios are also presented in the OR column of the table below. The SPEEDING predictor has the highest odds ratio. 
 
 * **FATAL_OR_M**: The odds ratio is equal to $e^{-0.814014} = 2.25694878$. This means that holding all other predictors constant, the odds of the driver being drunk increases by a factor of 2.25694878 when a fatality or major injury occurs during an accident.   
@@ -218,14 +313,15 @@ finallogitoutput
 
 ```
 
+The table below shows the sensitivity, specificity, and miss classification rate for different thresholds. Overall, as the threshold increases our sensitivity and miss-classification rate decrease. As the threshold increases, the specificity also increases. The threshold with the lowest mid classification rate is 0.5 threshold. The threshold with the highest miss classification rate is 0.02. If we consider just the miss classification rate, the 0.50 threshold provides the best results.
 
-The table below shows the sensitivity, specificty, and miss classification rate for different tresholds. Overall, as the threshold increases our sensitivity and miss-classification rate decrease. As the threshold increases, the specifity also increases. The threshold with the lowest midd classification rate is 0.5 threshold. The threshold with the highest miss classification rate is 0.02. If we consider just the miss classification rate, the 0.50 threshold provides the best results.
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+ 
+ fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
+ #hist(fit)       #Histogram of fitted values
+```
 
-# ```{r warning=FALSE, message=FALSE, cache=FALSE}
-# 
-# fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
-# hist(fit)       #Histogram of fitted values
-# ```
+### Sensitivity, Specificity, and Misclassification Rate
 
 ```{r}
 
@@ -234,7 +330,7 @@ sens = c()
 spec = c()
 mis_class = c()
 
-for (x in tresholds){
+for (x in thresholds){
   fit.binary = as.factor(ifelse(fit > x , 1, 0))
   results <- caret::confusionMatrix(fit.binary, as.factor(data$DRINKING_D), positive = "1")
   results_table <- results$table
@@ -249,7 +345,7 @@ cbind(thresholds,sens,spec,mis_class) %>%
   row_spec(row = 10, background = "yellow",bold=T)
 ```
 
-## ROC Curve
+### ROC Curve
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 a <- cbind(data$DRINKING_D, fit)
@@ -259,14 +355,15 @@ roc <- as.data.frame(a)
 pred <- prediction(roc$predictions, roc$labels)
 ```
 
-The chart below shows the ROC Curve for our model. The ROC curve shows the true positive rate and negative rate at different thresholds. As the true positive rate (i.e: sensitivity) increases, the false positive rate also increases. The ROC curve shows that our model fit, is better than a random model as the curve is above the straight diagonal line through the box. However, the model's ROC is very far from a perfect fit. 
+The chart below shows the ROC Curve for our model. The ROC curve shows the true positive rate and negative rate at different thresholds. As the true positive rate (i.e: sensitivity) increases, the false positive rate also increases. The ROC curve shows that our model fit, is better than a random model as the curve is above the straight diagonal line through the box. However, the model's ROC is still poor as the curve's distance from the top left hand corner of the ROC curve is large. 
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 roc.perf = performance(pred, measure = "tpr", x.measure="fpr")
 plot(roc.perf)
 abline(a=0,b=1)
 ```
-We now use the minimum distance approach to determine the threshold where the distance from the top left hand corner to the ROC curve is lowest.
+
+We use the minimum distance approach to determine the threshold where the distance from the top left hand corner to the ROC curve is lowest. This approach helps determine the threshold where both the sensitivity and specificity of the model predictions are minimized. The threshold with the shortest distance from the ROC curve to the top left hand corner is 0.06365151. At this threshold, the sensitivity is 0.66076459 and the specificity is 0.54524328.
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 opt.cut = function(perf, pred){
@@ -274,24 +371,29 @@ opt.cut = function(perf, pred){
     d = (x - 0)^2 + (y-1)^2
     ind = which(d == min(d))
     c(sensitivity = y[[ind]], specificity = 1-x[[ind]], 
-      cutoff = p[[ind]])
+      threshold = p[[ind]])
   }, perf@x.values, perf@y.values, pred@cutoffs)
 }
 
 print(opt.cut(roc.perf, pred))
 ```
 
+The Area Under the Curve (AUC) is a metric we can examine to measure the overall fit of our logistic model. As discussed earlier, the closer the AUC value is to one the greater the ability to select a threshold which minimizes both sensitivity and specificity. Our ROC value is 0.6398695. This is considered a poor fit as ROC values which fall between 0.6 and 0.7 are indicative of a poor fit. The ROC value supports our previous conclusion that the ROC curve does not have a good fit.  
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 auc.perf = performance(pred, measure ="auc")
 auc.perf@y.values
 ```
 
+### Alternative Logistic Regression Model
+
+We present the results of an alternative logistic regression in which the continuous variables (i.e: PCTBACHMOR and MEDHHINC) have been removed and only the binary variables are included. We refer to this alternative logistic regression as regression 2. In regression 2, there are no major changes in the p-values of the Beta coefficients. All binary variables except for CELL_PHONE continue to be statistically significant as the p-values are near zero, and we can reject the null hypothesis that the Beta Coefficient is zero. Using the alternative logistic regression model results in small changes to the Beta coefficients and odds ratio. For example, the Beta coefficient for DRIVER1617 increases by 0.01 and the Beta coefficient for CELL_PHONE also increases by approximately 0.01.
+
 ```{r logit model2}
 
-logit2 = glm(formula = DRINKING_D ~ OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS, data = data, family = "binomial")
+logit2 = glm(formula = DRINKING_D ~ FATAL_OR_M + OVERTURNED + CELL_PHONE + SPEEDING + AGGRESSIVE + DRIVER1617 + DRIVER65PLUS, data = data, family = "binomial")
 
-#summary(logit2)
+summary(logit2)
 
 #exp(cbind(OR = coef(logit2), confint(logit2)))
 
@@ -307,7 +409,16 @@ finallogitoutput2
 
 ```
 
-```{r AIC}
+The table below shows the AIC for logistic regression 1, the model with all 10 predictors has an AIC value of 18359.63. The model with just the binary predictors has an AIC value of 18360.47. Because the logistic regression has a lower AIC value we can conclude that it has a better fit. 
 
-AIC(logit, logit2)
+```{r AIC}
+test <- AIC(logit, logit2)
+
+AIC(logit, logit2) %>%
+  as_data_frame() %>%
+  mutate(Regression = c('Logistic Regression 1','Logistic Regression 2')) %>%
+  select(Regression, df, AIC) %>%
+  kbl(col.names = c("Regression",'Number of Predictors','AIC')) %>%
+  kable_classic_2()
 ```
+
