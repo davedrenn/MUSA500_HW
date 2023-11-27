@@ -135,6 +135,11 @@ However, several of the assumptions for OLS regression are not necessary for log
 
 DRINKING_D.tab <- table(data$DRINKING_D)
 
+kable(table(data$DRINKING_D), col.names = c("Drinking Driver", "Count"), 
+      caption = "Proportion of Crashes Involving a Drinking Driver") %>%
+  kable_styling(c("striped"), full_width = T, position = "left", font_size = 12)
+
+
 kable(prop.table(DRINKING_D.tab), col.names = c("Drinking Driver", "Proportion"), 
       caption = "Proportion of Crashes Involving a Drinking Driver") %>%
   kable_styling(c("striped"), full_width = T, position = "left", font_size = 12)
