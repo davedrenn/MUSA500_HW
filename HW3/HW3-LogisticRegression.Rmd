@@ -1,5 +1,5 @@
 ---
-title: "HW3-LogisticRegression"
+title: "MUSA 5000, Homework Number 3, Logistic Regression"
 author: "Richard Barad, Dave Drennan, Jarred Randall"
 output:
   pdf_document:
@@ -12,7 +12,6 @@ editor_options:
   markdown: 
     wrap: 72
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
@@ -42,66 +41,94 @@ data <- read.csv("./Data/LogisticRegressionData.csv")
 
 # Introduction
 
+Driving while intoxicated and the damage that drunk drivers can cause to individuals, families, and property is a serious issue in the United States that results in fatalities every day - the US Department of Transportation states that almost 30 people a day die as a result of drunk drivers. Understanding what predictors of a crash that are associated with drunk driving can help us better understand the nature of these crashes and the outcomes that can occur when certain behaviors are true in incidents that involve drunk drivers. 
+
+For this analysis, we will be using Philadelphia, PA crash data between 2008 and 2012 from the PA Department of Transportation. The data is geocoded and was previously merged with US Census block group data to incorporate socioeconomic features. The original data set includes 53,260 crashes and is filtered to remove nearly 10,000 crashes that occurred in non-residential block groups to contain a total of 43,364 crashes that happened in Philadelphia residential areas.
+
+We will conduct a logistic regression and use a combination of binary and continuous variables, with binary variables represented by a 1 for “Yes” and 0 for “No”. Throughout this report, we will also refer to our logistic model as a logit model. Our dependent variable is DRINKING_D, which indicates if the driver was drunk or not, and we use this binary variable in our logistic regression to regress it on the following predictors:
+
+* FATAL_OR_M: whether the crash resulted in a fatality or major injury. We speculate this may correlate with drunk driving due to the many deaths that are reported to occur as a result of driving while intoxicated.
+
+* OVERTURNED: whether the crash involved an overturned vehicle, which we speculate as a more serious crash incident that is more likely if the driver is drunk.
+
+* CELL_PHONE: whether the crash involved a driver using a cell phone, which we speculate would be associated with drunk drivers since they are more likely to be careless behind the wheel and misjudge their ability to multitask effectively.
+
+* SPEEDING: whether the crash involved speeding, which we speculate would be associated with drunk drivers due to reckless or uninhibited behaviors that are often associated with being drunk.
+
+* AGGRESSIVE: whether the crash involved aggressive driving, which we speculate would be associated with drunk drivers for the same reasons as SPEEDING.
+
+* DRIVER1617: whether the crash involved a driver who is 16 or 17 years old, which we speculate would be associated with drunk drivers due to limited experience or low tolerance for alcohol, as well as the reasons associated with SPEEDING and AGGRESSIVE.
+
+* DRIVER65PLUS: whether the crash involved a driver who is 65+ years old, which we speculate would be associated with drunk drivers due to low tolerance for alcohol, as well as the reasons associated with SPEEDING and AGGRESSIVE.
+* PCTBACHMOR: percent of individuals 25+ years old in a block group who have at least a bachelor’s degrees in the block group where the crash took place, which we speculate would be associated with lower odds for crashes involving drunk drivers if the area has a higher education level and so may be more aware of the dangers of drunk driving.
+
+* MEDHHINC: median household income in a block group where the crash took place, which we speculate would be associated with lower odds for crashes involving drunk drivers if residents who frequently drive in the area have a higher disposable income to call a cab if intoxicated.
+
+We will use the open source statistical software R to run our exploratory analysis and statistical regression in this report. 
+
 # Methods
 
-Ordinary Leased Squared (OLS) regression works well when the dependent variable (Y) is continuous, and ideally normally distributed. OLS regression does work well when the dependent (Y) variable is binary (e.g: Yes/No, 1/0, True/False). OLS regression does not work well for binary dependent variables because the Beta Coefficients in OLS regression represent the amount the dependent variable changes by when a predictor changes by one unit. With a binary variable, Y is either one or zero so determining that a one unit increase in a predictor results in a Beta1 change in Y is not useful, when Y can only be one or zero. Additionally, OLS regression models for a binary variable could potentially result in Y values which are greater than one or below zero which is also not possible.   
+Ordinary least squares (OLS) regression works well when the dependent variable (Y) is continuous, and ideally normally distributed. However, OLS regression does not work well when the dependent (Y) variable is binary (e.g: Yes/No, 1/0, True/False). The beta coefficients in OLS regression represent the amount the dependent variable changes by when a predictor changes by one unit - with a binary variable, Y is either 1 or 0, so determining that a one unit increase in a predictor results in a $\beta$ change in Y is not useful, when Y can only be 1 or 0. Additionally, OLS regression models for a binary variable could potentially result in Y values which are greater than one or below zero, which is also not possible in terms of the variable’s potential values. 
 
-In order to use linear regression methods for a binary variable, it is necessary to apply a translator function to the model. The translator function converts the predicted Y to the probability that Y is equal to 1. The logistic function is a common translator function used for modeling binary variables and is the method we will use in our analysis.
+When working with a binary variable, it is necessary to apply a translator function to the model. The translator function converts the predicted Y to the probability that Y is equal to 1. The logistic function is a common translator function used for modeling binary variables and is the method we will use in our analysis.
 
 ## Overview of Logit and Logistic Regression
 
-Before discussing the logistic regression formulas, it is first important to understand how odds are calculated. The formula for odds is: $\frac{Number\:of\:Desirable\:Outcomes}{Number\:of\:Undesirable\:Outcomes}$. For a binary dependent variable, the odds are equal to the Probability that Y=1 divided by the probability that Y=0 which can also be expressed as $p / 1- p$ in which p stands for the probability that Y=1. The odds are part of the logit regression formula.
+Before discussing the logistic regression formulas in detail, it is first important to understand how odds are calculated. The formula for odds is: $\frac{Number\:of\:Desirable\:Outcomes}{Number\:of\:Undesirable\:Outcomes}$. For a binary dependent variable, the odds are equal to the probability that $Y=1$ divided by the probability that $Y=0$, which can also be expressed as $p / 1- p$ in which p stands for the probability that $Y=1$. The odds are part of the logit regression formula, which we state for our model as:
 
 $$ln(\frac{p}{1-p}) = \beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC +\epsilon $$
 
-The equation above shows the logit regression formula. The quantity ln( p / 1- p) is called the log odds or logit and represents the log odds of the predicted dependent variable being a 1. The Beta0 coefficient is equal to the log odds of the dependent variable being a one when all independent variables are equal to zero. The beta coefficients numbered 1 through 7 represent the change in the log odds of the dependent variable when the indicated independent variable changes by one, while all other independent variables are held constant.
+The quantity ln( $p / 1- p$) is called the log odds or logit and represents the log odds of the predicted dependent variable being a $1$. The $\beta_0$ coefficient is equal to the log odds of the dependent variable being a one when all independent variables are equal to zero. The $\beta$ coefficients numbered one through nine represent the change in the log odds of the dependent variable when the indicated independent variable changes by one, while all other independent variables are held constant.
 
-If we solve for p, the equation above can also be written as:
+If we solve for p, the logit equation above can also be written as:
 
 $$p = \frac{e^{\beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC}}{1 +e^{\beta_0 + \beta_1 FATAL\_OR\_M + \beta_2 OVERTURNED + \beta_3 CELL\_PHONE + \beta_4 SPEEDING + \beta_5 AGGRESSIVE + \beta_6 DRIVER1617 + \beta_7 DRIVER65PLUS + \beta_8 PCTBACHMOR + \beta_9 MEDHHINC}}$$
 
 
-When written in this format, the equation is called the inverse logit or logistic function. Some statisticians will still call the equation in this format the logit function. In the logistic regression equation, the beta coefficients continue to represent the change in the log odds of the dependent variable when the indicated independent variable changes by one unit. P represents the probability that an outcome is equal to one. The logistic function is more frequently used than the logic version because it is easier to understand probability than log odds. 
+When written in this format, the equation is called the inverse logit or logistic function. Some statisticians will still call the equation in this format the logit function. In the logistic regression equation, the $\beta$ coefficients continue to represent the change in the log odds of the dependent variable when the indicated independent variable changes by one unit. $p$ represents the probability that an outcome is equal to one. The logistic function is more frequently used than the logit version because it is easier to interpret and understand probability instead of log odds. 
 
-In the logistic function, when the exponent of e (euler's constant) is equal to 0 then p will be equal to 0.5. When the exponent of e is very large, p will approach one (but will never exceed one). When the exponent of e is very small, p will approach zero (but will never exceed zero). This structure makes the logistic function ideal for analyzing binary (i.e: 0/1 variables).  
+In the logistic function, when the exponent of e (Euler's constant) is equal to 0, then $p$ will be equal to 0.5. When the exponent of e is very large, p will approach one (but will never exceed one). When the exponent of e is very small, p will approach zero (but will never decrease below zero). This structure makes the logistic function ideal for analyzing binary (i.e: 0/1) variables.  
 
 ## Hypothesis Testing
 
 We perform the following hypothesis tests for each predictor:
-$H_o: beta_i = 0$
-$H_a: beta_i \neq 0$
+* $H_0: \beta_i = 0$
+* $H_a: \beta_i \neq 0$
 
-$beta_i$ is the coefficient for each predictor $i$.
+$\beta_i$ is the coefficient for each predictor $i$.
 
-To test our hypotheses for significance in a logistic regression for binary predictors, we calculate the Wald statistic. The Wald statistic is equivalent to a z-score, which has a standard normal distribution. We calculate the Wald statistic for logistic regression using the following equation:
+To test our hypothesis for significance in a logistic regression for binary predictors, we calculate the Wald statistic. The Wald statistic is equivalent to a z-score, which has a standard normal distribution, so we interpret probabilities for statistical significance using z-scores in our logistic regression model. We calculate the Wald statistic for logistic regression using the following equation:
 
-$$(beta^_i - E(beta ^_i ))/\sigma_(beta ^_i ) =(beta ^_i - 0)/\sigma_(beta ^_i  ) =beta ^_i /\sigma_(beta ^_i  )$$ 
+$$\frac{\hat{\beta}_i - E(\hat{\beta}_i)}{\sigma_{\hat{\beta}_i}} = \frac{\hat{\beta}_i - 0}{\sigma_{\hat{\beta}_i}} = \frac{\hat{\beta}_i}{\sigma_{\hat{\beta}_i}}$$
 
-$beta^_i$ is the coefficient for each predictor, and in the context of our hypothesis, the expected value $E$ for $beta^_i$ is 0. We divide the coefficient by the standard error $\sigma_beta ^_i$, which represents the Wald statistic and is equal to a z-score, which shows how many standard deviations the coefficient is from the expected value of $beta^_i$. Using the z-score and its normal distribution
+$\beta^_i$ is the coefficient for each predictor, and in the context of our hypothesis, the expected value $E$ for $\beta^_i$ is 0. We divide the coefficient by the standard error $\sigma_beta ^_i$, which represents the Wald statistic and is equal to a z-score, which shows how many standard deviations the coefficient is from the expected value of $\beta^_i$.
 
-For logistic regression, most statisticians prefer to look at odds ratios instead of the estimated $beta$ coefficients. For the hypothesis tests, the null hypothesis $H_o$ can instead be tested for having an odds ratio $OR_i = 1$ and the alternative hypothesis $H_a$ can instead be tested for having an odds ratio $OR_i \neq 1$. Odds ratios are calculated by exponentiating the coefficients using the equation $e^beta_i$. If $beta_i$ is 0, as stated in our null hypothesis, $e^0$ equals 1. The odds ratio allows us to compare the binary outcomes of our variables.
+For logistic regression, most statisticians prefer to look at odds ratios instead of the estimated $\beta$ coefficients. For the hypothesis tests, the null hypothesis $H_0$ can instead be tested for having an odds ratio $OR_i = 1$ and the alternative hypothesis $H_a$ can instead be tested for having an odds ratio $OR_i \neq 1$. Odds ratios are calculated by exponentiating the coefficients using the equation $e^\beta_i$. If $\beta_i$ is 0, as stated in our null hypothesis, $e^0$ equals $1$. The odds ratio allows us to compare the binary outcomes of our variables.
 
 ## Quality of Model Fit
  
-When assessing the quality of model fit in logistic regression, it's important to consider the limitations of metrics traditionally used for linear models, such as R-Squared. R-Squared can be computed for logistic regression, but it does not have the same interpretation as it does in OLS regression. In the context of logistic regression, R-Squared does not indicate the proportion of variance explained by the model. Rather, it measures the model's discriminative ability — how effectively it can distinguish between different outcome classes. A more appropriate approach for model comparison is the Akaike Information Criterion (AIC). The AIC is an estimator of relative quality among statistical models for a given set of data. It balances the goodness of fit of a model with its complexity, penalizing models with more parameters. A lower AIC indicates a better-fitting model, as it suggests that the model can explain the data well without being overly complex. Other metrics used in the evaluation logistic regression models are specificity, sensitivity, and the misclassification rate:
+When assessing the quality of model fit in logistic regression, it is important to consider the limitations of metrics traditionally used for linear models, such as R-squared. R-squared can be computed for logistic regression, but it does not have the same interpretation as it does in OLS regression. In the context of logistic regression, R-squared does not indicate the proportion of variance explained by the model. Rather, it measures the model's discriminative ability — how effectively it can distinguish between different outcome classes. A more appropriate approach for model comparison is the Akaike Information Criterion (AIC). The AIC is an estimator of relative quality among statistical models for a given set of data. It balances the goodness of fit of a model with its complexity, penalizing models with more parameters. A lower AIC indicates a better-fitting model, as it suggests that the model can explain the data well without being overly complex. Other metrics used in the evaluation logistic regression models are specificity, sensitivity, and the misclassification rate:
  
-Sensitivity (also referred to as the true positive rate) measures the proportion of actual positives that the model identifies and is complementary to the false negative rate. Sensitivity is calculated as the number of true positives (or TP is a test result that correctly indicates the presence of a condition or characteristic) divided by the sum of true positives and false negatives (or FN is a test result which wrongly indicates that a condition does not hold) the formula for sensitivity is:
-Sensitivity=
-True Positives /False Negatives + True Positives
+**Sensitivity** (also referred to as the true positive rate) measures the proportion of actual positives that the model identifies and is complementary to the false negative rate. Sensitivity is calculated as the number of true positives (or TP is a test result that correctly indicates the presence of a condition or characteristic) divided by the sum of true positives and false negatives (or FN is a test result which wrongly indicates that a condition does not hold) the formula for sensitivity is:
+$$\text{Sensitivity} = \frac{TP}{FN + TP}$$
 ​
  
-Specificity (also referred to as the true negative rate) measures the proportion of negatives which the model identifies and is complementary to the false positive rate. It is calculated as the number of true negatives (or TN is a test result that correctly indicates the absence of a condition or characteristic) divided by the sum of true negatives and false positives (or FP is a result that indicates a given condition exists when it does not). The formula for specificity is stated as:
+**Specificity** (also referred to as the true negative rate) measures the proportion of negatives which the model identifies and is complementary to the false positive rate. It is calculated as the number of true negatives (or TN is a test result that correctly indicates the absence of a condition or characteristic) divided by the sum of true negatives and false positives (or FP is a result that indicates a given condition exists when it does not). The formula for specificity is stated as:
  
-Specificity = TN/TN+FN
+$$\text{Specificity} = \frac{TN}{TN + FN}$$
  
-The Misclassification Rate is the proportion of total predictions that the model got wrong. It encompasses both types of errors: false positives and false negatives. It is calculated as the sum of false negatives and false positives divided by the total number of observations. The formula is stated as:
-Misclassification rate = FN+FP/Total Observations.
-In logistic regression, the fitted (predicted) values of y (i.e.,  ) are the predicted probabilities of the outcome being 1. A good model will assign a high probability that y=1 when y is 1. Likewise, a good model will assign a low probability to values of one and low probabilities that y=1 when y is 0.  is calculated with the following equation:
+**The Misclassification Rate** is the proportion of total predictions that the model got wrong. It encompasses both types of errors: false positives and false negatives. It is calculated as the sum of false negatives and false positives divided by the total number of observations. The formula is stated as:
 
+$$\text{Misclassification rate} = \frac{FN+FP}{Total\ Observations}$$
+In logistic regression, the fitted (predicted) values of $y$ (i.e.,$\widehat{y}$  ) are the predicted probabilities of the outcome being $1$. A good model will assign a high probability that $y=1$ when $y$ is $1$. Likewise, a good model will assign a low probability to values of one and low probabilities that $y=1$ when $y$ is $0$.  is calculated with the following equation:
+$$\hat{y} = \hat{p}(Y=1) = \frac{e^{\beta_0 + \beta_1 x_1}}{1 + e^{\beta_0 + \beta_1 x_1}}$$
 
-When calculating the specificity, sensitivity, and misclassification rate it is important to use different cut-offs for what is considered a high probability of y=1.
+When calculating the specificity, sensitivity, and misclassification rate, it is important to use different cut-offs for what is considered a high probability of $y=1$.
  
-“ROC or Receiver Operating Characteristic “is a way to plot true positive rate (sensitivity) against false positive rate (i.e., 1- specificity). ROC curves can also be used to examine the predictive quality of the model. A cut-off value may be determined by optimizing sensitivity and specificity using the following methods: the Youden Index and minimum distance. The Youden Index identifies the cut-off probability that corresponds to the maximum possible sum of sensitivity and specificity. Whereas in minimum distance a cut-off for which the ROC curve has the minimum distance from the upper left corner of the graph (i.e., the point at which specificity and sensitivity =1). This report utilizes the minimum distance method.  The area under the ROC Curve, known as the AUC (area under the curve), is a metric for assessing the accuracy of a predictive model. It measures how effectively a model predicts 1 response as 1’s and 0 responses as 0’s. A higher AUC indicates that the model can find a cutoff value at which both sensitivity (true positive rate) and specificity (true negative rate) are comparatively high. The possible value ranges are between 0.5 (the area under the 45-degree line) and 1 (the area of the entire box). A rough guide for accuracy is:
+ROC, or the “Receiver Operating Characteristic” is a way to plot the true positive rate (sensitivity) against the false positive rate. ROC curves can also be used to examine the predictive quality of the model. A cut-off value may be determined by optimizing sensitivity and specificity using the following methods: the Youden Index and minimum distance. The Youden Index identifies the cut-off probability that corresponds to the maximum possible sum of sensitivity and specificity. In minimum distance, a cut-off probability is identified for which the ROC curve has the minimum distance from the upper left corner of the graph. 
+
+This report utilizes the minimum distance method.  The area under the ROC curve (AUC) is a metric for assessing the accuracy of a predictive model. It measures how effectively a model predicts 1 response as 1’s and 0 responses as 0’s. A higher AUC indicates that the model can find a cutoff value at which both sensitivity (true positive rate) and specificity (true negative rate) are comparatively high. The possible value ranges are between 0.5 (the area under the 45-degree line) and 1 (the area of the entire box). Statisticians generally consider the following as a rough guide for accuracy:
+
 -        .90-1 = Excellent
 -        .80-.90 = Good
 -        .70-.80 = Fair
@@ -110,22 +137,74 @@ When calculating the specificity, sensitivity, and misclassification rate it is 
  
 ## Assumptions of Logistic Regression
  
-In evaluating logistic regression models, understanding their underlying assumptions and how these differ from those in Ordinary Least Squares (OLS) regression is important. Both logistic regression and OLS require the independence of observations and the absence of multicollinearity (refer to “Assignment 1 – OLS Regression” for more detailed definitions of these assumptions). However, logistic regression diverges from OLS in several key aspects:
+In evaluating logistic regression models, understanding their underlying assumptions and how these differ from those in OLS regression is important. Both logistic and OLS regression require the independence of observations and the absence of multicollinearity (refer to “Assignment 1 – OLS Regression” for more detailed definitions of these assumptions). 
+
+However, logistic regression diverges from OLS in several key aspects:
  
- Binary Dependent Variable: The dependent variable in logistic regression must be binary, a fundamental difference from the continuous dependent variable in OLS.
- Sample Size Requirement: Logistic regression typically requires larger sample sizes, with at least 50 observations per predictor. This is necessary to achieve stable and meaningful estimates, accounting for the model's complexity and the variability in binary outcomes.
- Relationship Between Variables: Unlike OLS, logistic regression does not assume a linear relationship between the dependent and independent variables. Instead, it assumes a linear relationship between the log odds of the outcome being 1 (y=1) and the independent variables. However, this linear relationship is not commonly tested in practice.
- Homoscedasticity: Logistic regression does not require the assumption of homoscedasticity, which is a key consideration in OLS.
-Normalization of Residuals: There is no requirement for the residuals to be normalized in logistic regression.
+* **Binary Dependent Variable:** The dependent variable in logistic regression must be binary, a fundamental difference from the continuous dependent variable in OLS.
 
+* **Sample Size Requirement:** Logistic regression typically requires larger sample sizes, with at least 50 observations per predictor. This is necessary to achieve stable and meaningful estimates, accounting for the model's complexity and the variability in binary outcomes.
 
-## Logistic Regression Assumptions
+* **Relationship Between Variables:** Unlike OLS, logistic regression does not assume a linear relationship between the dependent and independent variables. Instead, it assumes a linear relationship between the log odds of the outcome being $1$ ($y=1$) and the independent variables. However, this linear relationship is not commonly tested in practice.
 
-When conducting logistic regression analyses, some of the assumptions that must be met for OLS regression must also be met for logistic regression. These similar assumptions include independence of observations and no multicollinearity, or at least no severe multicollinearity for logistic regression. 
+* **Homoscedasticity:** Logistic regression does not require the assumption of homoscedasticity, which is a key consideration in OLS.
 
-However, several of the assumptions for OLS regression are not necessary for logistic regression. For logistic regression, the dependent variable must be binary instead of having a linear relationship with predictor variables, there is no assumption of homoscedasticity, residuals do not need to be normal, and there is also a much higher threshold for the number of observations in the samples - at minimum, 50 observations per predictor versus 10 per predictor in OLS regression. 
+* **Normalization of Residuals:** There is no requirement for the residuals to be normalized in logistic regression.
 
+## Exploratory Analyses
 
+To better understand our predictor variables and their relationships with our dependent variable DRINKING_D, we will conduct initial exploratory analyses before running the logistic regression.
+
+For our binary predictors, we will conduct Chi-Square tests ($X^2$) to examine the association between the binary variables. Chi-Square testing is a form of hypothesis testing that is used to compare the relationship of the distribution of a categorical or binary variable with another categorical or binary variable. In this case, our dependent variable is DRINKING_D, and we test if there is a relationship between the dependent variable and each of the binary predictors. Our null and alternative hypotheses tests for the ($X^2$) tests are as follows:
+
+FATAL_OR_M
+
+* $H_0$: the proportion of fatalities for crashes that involve drunk drivers is the same as the proportion of fatalities for crashes that don’t involve drunk drivers
+* $H_a$: the proportion of fatalities for crashes that involve drunk drivers is different than the proportion of fatalities for crashes that don’t involve drunk drivers
+
+OVERTURNED
+
+* $H_0$: the proportion of crashes with overturned vehicles that involve drunk drivers is the same as the proportion of crashes with overturned vehicles that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with overturned vehicles that involve drunk drivers is different than the proportion of crashes with overturned vehicles that don’t involve drunk drivers
+
+CELL_PHONE
+
+* $H_0$: the proportion of crashes with driver cell phone use that involve drunk drivers is the same as the proportion of crashes with driver cell phone use that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with driver cell phone use that involve drunk drivers is different than the proportion of crashes with driver cell phone use that don’t involve drunk drivers
+
+SPEEDING
+
+* $H_0$: the proportion of crashes with speeding that involve drunk drivers is the same as the proportion of crashes with speeding that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with speeding that involve drunk drivers is different than the proportion of crashes with speeding that don’t involve drunk drivers
+
+AGGRESSIVE
+
+* $H_0$: the proportion of crashes with aggressive driving that involve drunk drivers is the same as the proportion of crashes with aggressive driving that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with aggressive driving that involve drunk drivers is different than the proportion of crashes with aggressive driving that don’t involve drunk drivers
+
+DRIVER1617
+
+* $H_0$: the proportion of crashes with a 16 or 17 year old driver that involve drunk drivers is the same as the proportion of crashes with a 16 or 17 year old driver that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with a 16 or 17 year old driver that involve drunk drivers is different than the proportion of crashes with a 16 or 17 year old driver that don’t involve drunk drivers
+
+DRIVER65PLUS
+
+* $H_0$: the proportion of crashes with a 65 year old or older driver that involve drunk drivers is the same as the proportion of crashes with a 65 year old or older driver that don’t involve drunk drivers
+* $H_a$: the proportion of crashes with a 65 year old or older driver that involve drunk drivers is different than the proportion of crashes with a 65 year old or older driver that don’t involve drunk drivers
+
+A high value for the $X^2$ and a p-value below 0.05 indicate that there’s evidence to reject the null hypothesis in favor of the alternate hypothesis.
+
+For our continuous predictors, we will compare the mean values of our two categories of DRINKING_D for each continuous variable, PCTBACHMOR and MEDHHINC, using an independent samples t-test. This hypothesis test allows us to compare the average values of the continuous variables with the binary dependent variable. Our null and alternative hypotheses tests for the independent samples t-test tests are as follows:
+
+PCTBACHMOR 
+* $H_0$: average values of the variable PCTBACHMOR are the same for crashes that involve drunk drivers and crashes that don’t
+* $H_a$: average values of the variable PCTBACHMOR are different for crashes that involve drunk drivers and crashes that don’t
+
+MEDHHINC
+* $H_0$: average values of the variable MEDHHINC are the same for crashes that involve drunk drivers and crashes that don’t
+* $H_a$: average values of the variable MEDHHINC are different for crashes that involve drunk drivers and crashes that don’t
+
+A high value for the t-statistic and a p-value below 0.05 indicate that there’s evidence to reject the null hypothesis in favor of the alternate hypothesis.
 
 ## Results
 
@@ -141,6 +220,7 @@ cbind(table(data$DRINKING_D),prop.table(DRINKING_D.tab)) %>%
   kable_styling(c("striped"), full_width = T, position = "left", font_size = 12)
 
 ```
+In the tabulation of DRINKING_D, we compare the counts and proportions of 0 (i.e. no alcohol involved) and 1 (i.e. alcohol involved). There were vastly more instances where no alcohol was involved at nearly 41,000 - about 94% of cases- compared to about 2,500 or 5.7% of crashes that involved a drinking driver.
 
 ### cross-tabulation between dependent variable and binary predictors
 
@@ -177,6 +257,14 @@ chi_vector <- c(ct_chi1, ct_chi2, ct_chi3, ct_chi4, ct_chi5, ct_chi6, ct_chi7)
 chi_table <- cbind(chi_vector,variable=c('FATAL_OR_M','OVERTURNED','CELL_PHONE','SPEEDING','AGGRESSIVE','DRIVER1617','DRIVER65PLUS')) %>%
   as_data_frame()
 ```
+We first examine the results of our $X^2$ testing. Based on the $X^2$ p-values that are lower than 0.05, we reject the null hypotheses for all but CELL_PHONE, for which we fail to reject the null hypothesis. Independent of other predictors, there appears to be associations between crashes involving: 
+
+* drunk drivers and aggressive drivers 
+* drunk drivers and 16-17 year old drivers 
+* drunk drivers and 65+ year old drivers
+* drunk drivers and crashes with fatalities
+* drunk drivers and crashes with overturned vehicles
+* drunk drivers and speeding cars
 
 ```{r}
 df_cross_tab_pct <- cbind(DRINKING_D = c(0,1),ct1_pct, ct2_pct, ct3_pct, ct4_pct, ct5_pct, ct6_pct, ct7_pct) %>%
@@ -238,6 +326,7 @@ data_group_sd <- data %>% dplyr::select(DRINKING_D,PCTBACHMOR,MEDHHINC) %>%
          "Drinking_sd" = "1")
 
 ```
+We then examine the results of our independent samples t-testing. The p-values for both MEDHHINC and PCTBACHMOR are both higher than 0.05. We therefore fail to reject the null hypothesis for both continuous variables that average values of the predictor variables are the same for crashes that involve drunk drivers and crashes that don’t. There does not appear to be significant associations between our dependent variable DRINKING_D and MEDHHINC or PCTBACHMOR.
 
 ```{r t_test}
 t_PCTBACHMORE <- t.test(data$PCTBACHMOR~data$DRINKING_D)$p.value
@@ -253,11 +342,22 @@ cbind(data_group_mean,data_group_sd %>% dplyr::select(-variable),t_vector) %>%
 
 ```
 
-### Multicollinearity checks
+### Logistic Regression Assumptions
+
+The following logistic regression assumptions are met in the model:
+
+Large Sample Size: The model is estimated with over 43,000 observations, which satisfies the assumption of having at least 50 observations per predictor. 
+
+Binary Dependent Variable: The dependent variable DRINKING_D is binary, which is a fundamental requirement for logistic regression. 
+
+No Multicollinearity:  Upon examination of the pairwise Pearson matrix below, most variables show low to moderate correlation with each other, which suggests that multicollinearity might not be a significant issue for this set of predictors. Multicollinearity is typically defined as a Pearson correlation coefficient greater than 0.7 or 0.8 between two predictors. If the correlation matrix, which should be presented here, shows coefficients below this threshold, we can then conclude that multicollinearity is not a concern. 
+
+Multicollinearity refers to when two or more predictors have a high degree of correlation among themselves, which can inflate the variance of the coefficient estimates and make the model unstable. While Pearson correlation can be used as an initial check for multicollinearity between binary variables, it has limitations. Pearson correlations are designed to measure the linear relationship between two continuous variables. When applied to binary predictors, the interpretation is less straightforward since binary variables do not have a normal distribution, and the correlation does not capture nonlinear relationships.
+
 
 ```{r pearson, echo=FALSE}
 
-predictors <- data %>% dplyr::select(-CRN,-AREAKEY)
+predictors <- data %>% dplyr::select(-CRN,-AREAKEY,-DRINKING_D)
 
 predictors %>% 
   correlate() %>% 
@@ -268,7 +368,7 @@ predictors %>%
 
 ### Logistic Model
 
-The table below shows the results of the logistic regression model which includes all nine predictors included. The statistically significant predictors are FATAL_OR_M, OVERTURNED, SPEEDING, AGGRESSIVE, DRIVER1617, and DRIVER65PLUS. We conclude these predictors are statistically significant because they have a p-value which is less than 0.05. Because the p values are statistically significant we can reject the null hypothesis that the $\beta$ coefficients are equal to zero. The PCTBACHMOR and CELL_PHONE variables are not statistically significant.
+The table below shows the results of the logistic regression model with all nine predictors included. The statistically significant predictors are FATAL_OR_M, OVERTURNED, SPEEDING, AGGRESSIVE, DRIVER1617, and DRIVER65PLUS. We conclude these predictors are statistically significant because they have a p-value which is less than 0.05. The PCTBACHMOR and CELL_PHONE variables are not statistically significant.
 
 ```{r logit model}
 
@@ -278,25 +378,25 @@ logitoutput <- summary(logit)
 logitoutput
 ```
 
-We can also calculate the odds ratio for each Beta Coefficient. The Odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio for each predictor are shown below and the odds ratios are also presented in the OR column of the table below. The SPEEDING predictor has the highest odds ratio. 
+We can also calculate the odds ratio for each $\beta$ Coefficient. The odds ratio is calculated by using the formula $e^{\beta_x}$. The calculations for the odds ratio for each predictor are shown below and the odds ratios are also presented in the OR column of the table below. The SPEEDING predictor has the highest odds ratio. 
 
 * **FATAL_OR_M**: The odds ratio is equal to $e^{-0.814014} = 2.25694878$. This means that holding all other predictors constant, the odds of the driver being drunk increases by a factor of 2.25694878 when a fatality or major injury occurs during an accident.   
 
-* **OVERTURNED**: The odds ratio is equal to $e^{-0.928914} = 2.53177687$. This means that holding all other predictors constant, the odds of the driver being drunk being drunk increases by a factor of 2.53177687 when a vehicle is overturned in an accident.
+* **OVERTURNED**: The odds ratio is equal to $e^{-0.928914} = 2.53177687$. This means that holding all other predictors constant, the odds of the driver being drunk increases by a factor of 2.53177687 when a vehicle is overturned in an accident.
 
 * **CELL_PHONE**: The odds ratio is equal to $e^{-0.02955008} = 1.02999102$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 1.02999102 when a driver was using a cell phone during the accident.
 
 * **SPEEDING**: The odds ratio is equal to $e^{1.538976} = 4.65981462$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 4.65981462 when a driver was speeding during the accident. 
 
-* **AGGRESSIVE**: The odds ratio is equal to $e^{-0.05969159} = 0.55050681$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.55050681 when a driver was aggressive during the accident. 
+* **AGGRESSIVE**: The odds ratio is equal to $e^{-0.05969159} = 0.55050681$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.55050681 when a driver was aggressive during the accident (i.e: aggressive driver goes from 0 to 1). 
 
-* **DRIVER1617**: The odds ratio is equal to $e^{-1.280296} = 0.27795502$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.27795502 when the crash involved at least one driver who is 16 or 17.  
+* **DRIVER1617**: The odds ratio is equal to $e^{-1.280296} = 0.27795502$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.27795502 when the crash involves at least one driver who is 16 or 17.  
 
-* **DRIVER65PLUS**: The odds ratio is equal to $e^{-0.7746646} = 0.46085831$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.46085831 when the crash involved at least one driver who is 65 or older.
+* **DRIVER65PLUS**: The odds ratio is equal to $e^{-0.7746646} = 0.46085831$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.46085831 when the crash involves at least one driver who is 65 or older.
 
-* **PCTBACHMORE**: The odds ratio is equal to $e^{-0.0003706336e-04} = 0.99962944$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.99962944 when the percent of 25+ year olds in the census block where the accident occurred goes up by 1%.
+* **PCTBACHMORE**: The odds ratio is equal to $e^{-0.0003706336e-04} = 0.99962944$. This means that holding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 0.99962944 when the percent of 25+ year olds in the Census block where the accident occurred goes up by 1%.
 
-* **MEDHHINC**: The odds ratio is equal to $e^{00000.2804492} = 1.00000280$. This means that holiding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 1.00000280 when the percent the median household income in the census block where the accident occured goes up by 1 USD. 
+* **MEDHHINC**: The odds ratio is equal to $e^{00000.2804492} = 1.00000280$. This means that holiding all other predictors constant, the odds of the driver being drunk in an accident increases by a factor of 1.00000280 when the median household income in the Census block where the accident occurred goes up by 1 USD. 
 
 ```{r}
 
@@ -311,18 +411,14 @@ or_ci <- exp(cbind(OR=coef(logit), confint(logit)))
 
 finallogitoutput <- cbind(logitcoeffs, or_ci)
 finallogitoutput
-
 ```
+### Sensitivity, Specificity, and Misclassification Rate
 
-The table below shows the sensitivity, specificity, and miss classification rate for different thresholds. Overall, as the threshold increases our sensitivity and miss-classification rate decrease. As the threshold increases, the specificity also increases. The threshold with the lowest mid classification rate is 0.5 threshold. The threshold with the highest miss classification rate is 0.02. If we consider just the miss classification rate, the 0.50 threshold provides the best results.
+The table below shows the sensitivity, specificity, and misclassification rate for different thresholds. Overall, as the threshold increases, sensitivity and misclassification rate decrease, but specificity also increases. The threshold with the lowest misclassification rate is 0.5. The threshold with the highest misclassification rate is 0.02. If we consider just the misclassification rate, the 0.5 threshold provides the best results.
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
- 
  fit <- logit$fitted       #Getting the y-hats (i.e., predicted values)
- #hist(fit)       #Histogram of fitted values
 ```
-
-### Sensitivity, Specificity, and Misclassification Rate
 
 ```{r}
 
@@ -356,7 +452,7 @@ roc <- as.data.frame(a)
 pred <- prediction(roc$predictions, roc$labels)
 ```
 
-The chart below shows the ROC Curve for our model. The ROC curve shows the true positive rate and negative rate at different thresholds. As the true positive rate (i.e: sensitivity) increases, the false positive rate also increases. The ROC curve shows that our model fit, is better than a random model as the curve is above the straight diagonal line through the box. However, the model's ROC is still poor as the curve's distance from the top left hand corner of the ROC curve is large. 
+The chart below shows the ROC curve for our model. The ROC curve shows the true positive rate and false positive rate at different thresholds. As the true positive rate (i.e: sensitivity) increases, the false positive rate also increases. The ROC curve shows that our model fit is better than a random model as the curve is above the diagonal line. However, the model's ROC is still poor as the curve's distance from the top left hand corner of the ROC curve is large. 
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 roc.perf = performance(pred, measure = "tpr", x.measure="fpr")
@@ -379,7 +475,7 @@ opt.cut = function(perf, pred){
 print(opt.cut(roc.perf, pred))
 ```
 
-The Area Under the Curve (AUC) is a metric we can examine to measure the overall fit of our logistic model. As discussed earlier, the closer the AUC value is to one the greater the ability to select a threshold which minimizes both sensitivity and specificity. Our ROC value is 0.6398695. This is considered a poor fit as ROC values which fall between 0.6 and 0.7 are indicative of a poor fit. The ROC value supports our previous conclusion that the ROC curve does not have a good fit.  
+We examine the AUC to measure the overall fit of our logistic model. As discussed earlier, the closer the AUC value is to 1, the greater the ability of the model to select a threshold which minimizes both sensitivity and specificity. Our AUC value is 0.6398695 which indicates a poor fit, based on the thresholds generally followed by statisticians. The AUC value supports our previous conclusion that the ROC curve does not have a good fit.  
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 auc.perf = performance(pred, measure ="auc")
@@ -388,7 +484,7 @@ auc.perf@y.values
 
 ### Alternative Logistic Regression Model
 
-We present the results of an alternative logistic regression in which the continuous variables (i.e: PCTBACHMOR and MEDHHINC) have been removed and only the binary variables are included. We refer to this alternative logistic regression as regression 2. In regression 2, there are no major changes in the p-values of the Beta coefficients. All binary variables except for CELL_PHONE continue to be statistically significant as the p-values are near zero, and we can reject the null hypothesis that the Beta Coefficient is zero. Using the alternative logistic regression model results in small changes to the Beta coefficients and odds ratio. For example, the Beta coefficient for DRIVER1617 increases by 0.01 and the Beta coefficient for CELL_PHONE also increases by approximately 0.01.
+We present the results of an alternative logistic regression in which the continuous variables (i.e: PCTBACHMOR and MEDHHINC) have been removed and only the binary variables are included. We refer to this alternative logistic regression as logistic regression 2. In logistic regression 2, there are no major changes in the p-values of the $\beta$ coefficients. All binary variables except for CELL_PHONE continue to be statistically significant as the p-values are near zero, and we can reject the null hypothesis that the $\beta$ coefficient is zero. Using the alternative logistic regression model results in small changes to the $\beta$ coefficients and odds ratio. For example, the $\beta$ coefficient for DRIVER1617 increases by 0.01 and the $\beta$ coefficient for CELL_PHONE also increases by approximately 0.01.
 
 ```{r logit model2}
 
@@ -396,12 +492,9 @@ logit2 = glm(formula = DRINKING_D ~ FATAL_OR_M + OVERTURNED + CELL_PHONE + SPEED
 
 summary(logit2)
 
-#exp(cbind(OR = coef(logit2), confint(logit2)))
-
 logitoutput2 <- summary(logit2)
 
 logitcoeffs2 <- logitoutput2$coefficients
-#logitcoeffs2
 
 or_ci2 <- exp(cbind(OR=coef(logit2), confint(logit2)))
 
@@ -410,7 +503,7 @@ finallogitoutput2
 
 ```
 
-The table below shows the AIC for logistic regression 1, the model with all 10 predictors has an AIC value of 18359.63. The model with just the binary predictors has an AIC value of 18360.47. Because the logistic regression has a lower AIC value we can conclude that it has a better fit. 
+The table below shows the AIC for logistic regression 1. The model with all nine predictors has an AIC value of 18359.63. The model with just the seven binary predictors has an AIC value of 18360.47. Because the logistic regression with all nine predictors has a lower AIC value we can conclude that it has a better fit. 
 
 ```{r AIC}
 test <- AIC(logit, logit2)
@@ -422,5 +515,16 @@ AIC(logit, logit2) %>%
   kbl(col.names = c("Regression",'Number of Predictors','AIC')) %>%
   kable_classic_2()
 ```
+## Discussion
 
+Our analysis uses data from Pennsylvania Department of Transportation on car crashes, and we use logistic regression models to model if a driver will likely be drunk based on other variables. We include seven binary variables, which are part of the original dataset from the Department of Transportation dataset and two continuous variables which are derived from census data (PCTBACHMOR, MEDHHINC). 
 
+Our model indicates that the variable which is the strongest predictors of crashes involving drunk drivers is if the driver is speeding, which has the highest odds ratio. Other variables which are predictive of whether the driver will be drunk, based on our model, include if major injuries or fatalities occurred in the accident, if the vehicle was overturned, and if the driver was aggressive. The age of the driver (i.e: if the driver is under eighteen or over 65) is also predictive, but not as predictive as the other binary variables. Cell-phone use during a crash is not predictive of one of the drivers in an accident drunk driving.
+
+The results are unsurprising, and variables we most suspected to be associated with drunk driving were significant. The odds ratios for a major injury or fatality occuring in an accident, a car being overturned and a driver speeding in an accident are all greater than one. Thus, these variables have a higher likelihood of occurring during an accident if the driver is drunk. One surprising and unexpected finding is that the odds ratio for aggressive driving is less than one, indicating that drivers who are drunk during an accident are less likely to also be driving aggressively during an accident.   
+
+While the proportion of crashes that involve drunk drivers comprise only 5% of the total incidents of crashes in our data set, there are nearly 2,500 crashes involving drunk drivers. Given this high number of cases in the less likely of our two outcomes, logistic regression appears to be a viable method for analyzing our data due to a large enough sample size of rare events. However, we could still consider using the penalized likelihood methodology proposed by Paul Allison when discussing rare events to account for the small proportion of drunk driving accidents in the data.
+
+Some of the limitations of the analysis include the overall poor fit of the model. The AUC value is indicative of a poor model. Adding predictors through feature engineering and new data could help improve the predictive power of the model and increase the AUC value.
+
+Additionally, the usage of Pearson's correlation to check for multicollinearity has limitations when working with binary data as it is typically used for continuous data. In order to strengthen the conclusion that multicollinearity is not present, other multicollinearity tests such as the Variance Inflation Factor could be examined. 
