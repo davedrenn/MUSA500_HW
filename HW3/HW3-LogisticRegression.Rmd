@@ -516,6 +516,7 @@ AIC(logit, logit2) %>%
   kbl(col.names = c("Regression",'Number of Predictors','AIC')) %>%
   kable_classic_2()
 ```
+
 ## Discussion
 
 Our analysis uses data from Pennsylvania Department of Transportation on car crashes, and we use logistic regression models to model if a driver will likely be drunk based on other variables. We include seven binary variables, which are part of the original dataset from the Department of Transportation dataset and two continuous variables which are derived from census data (PCTBACHMOR, MEDHHINC). 
