@@ -417,7 +417,8 @@ test <- AIC(logit, logit2)
 
 AIC(logit, logit2) %>%
   as_data_frame() %>%
-  mutate(Regression = c('Logistic Regression 1','Logistic Regression 2')) %>%
+  mutate(Regression = c('Logistic Regression 1','Logistic Regression 2'),
+         df = df -1) %>%
   select(Regression, df, AIC) %>%
   kbl(col.names = c("Regression",'Number of Predictors','AIC')) %>%
   kable_classic_2()
