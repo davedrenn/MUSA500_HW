@@ -5,7 +5,80 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE, warning= FALSE, message=FALSE)
+```
+
+```{r libraries}
+library(NbClust)
+library(flexclust)
+library(kableExtra)
+library(tidyverse)
+
+options(scipen=999)
+```
+
+```{r read_data}
+data <- read.csv('./Data/RegressionData.csv') %>%
+  dplyr::select(-POLY_ID)
+
+data_scale <- data.frame(scale(data))
+```
+
+
+## Results
+
+### Scree Plot
+
+```{r scree_plot, warning=FALSE, message=FALSE, cache=FALSE}
+wss <- c()
+for (i in seq(from=2,to=20,by=1)) wss[i] <- sum(kmeans(data_scale, centers=i)$withinss)
+
+bind <- cbind(clusters = seq(from=1,to=20,by=1),wss) %>%
+  as.data.frame() %>%
+  dplyr::filter(clusters > 1)
+
+ggplot(data=bind)+
+  geom_line(aes(x=clusters,y=wss))+
+  geom_point(aes(x=clusters,y=wss))+
+  scale_x_continuous(breaks=seq(from=2,to=20,by=1))+
+  labs(x='Number of Clusters',y='Within groups sum of squares')+
+  theme_bw()
+
+```
+
+
+### NbClust 
+
+```{r warning=FALSE, message=FALSE, cache=FALSE,results='hide'}
+set.seed(1234)
+nc <- NbClust(data_scale, min.nc=2, max.nc=15, method="kmeans", index="all")
+```
+
+```{r}
+par(mfrow=c(1,1)) 
+barplot(table(nc$Best.n[1,]),
+        xlab="Numer of Clusters", ylab="Number of Criteria",
+        main="Number of Clusters Chosen by 26 Criteria")
+```
+
+
+### Run Cluster Analysis
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+set.seed(1234)
+fit.km <- kmeans(data_scale, centers=2, nstart=25)
+#Let's look at the number of observations in each cluster
+
+cbind(cluster=c('Cluster 1','Cluster 2'),obs=fit.km$size) %>%
+  kbl(col.names=c('Cluster','Size')) %>%
+  kable_classic_2()
+```
+
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+round(aggregate(data, by=list(cluster=fit.km$cluster), mean),1) %>%
+  kbl(col.names = c('Cluster','median house value','percent of individuals with at least a bachelor’s degree','median household income','percent of vacant housing units','percent of single/detached housing units')) %>%
+  kable_classic_2()
 ```
 
