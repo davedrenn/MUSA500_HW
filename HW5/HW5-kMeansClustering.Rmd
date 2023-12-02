@@ -14,15 +14,18 @@ library(NbClust)
 library(flexclust)
 library(kableExtra)
 library(tidyverse)
+library(sf)
 
 options(scipen=999)
 ```
 
-```{r read_data}
-data <- read.csv('./Data/RegressionData.csv') %>%
-  dplyr::select(-POLY_ID)
+```{r read_data,results='hide'}
+data <- read.csv('./Data/RegressionData.csv')
 
-data_scale <- data.frame(scale(data))
+shapefile <- st_read('./Data/RegressionData.shp')
+
+data_scale <- data.frame(scale(data))  %>%
+  dplyr::select(-POLY_ID)
 ```
 
 
@@ -50,7 +53,7 @@ ggplot(data=bind)+
 
 ### NbClust 
 
-```{r warning=FALSE, message=FALSE, cache=FALSE,results='hide'}
+```{r NbClust, warning=FALSE, message=FALSE, cache=FALSE,results='hide'}
 set.seed(1234)
 nc <- NbClust(data_scale, min.nc=2, max.nc=15, method="kmeans", index="all")
 ```
@@ -75,10 +78,25 @@ cbind(cluster=c('Cluster 1','Cluster 2'),obs=fit.km$size) %>%
   kable_classic_2()
 ```
 
+## Cluster Means
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
-round(aggregate(data, by=list(cluster=fit.km$cluster), mean),1) %>%
+round(aggregate(data %>% dplyr::select(-POLY_ID), by=list(cluster=fit.km$cluster), mean),1) %>%
   kbl(col.names = c('Cluster','median house value','percent of individuals with at least a bachelor’s degree','median household income','percent of vacant housing units','percent of single/detached housing units')) %>%
   kable_classic_2()
 ```
 
+### Map Cluster Results
+
+```{r}
+
+shapefile_cluster <- cbind(data,cluster=fit.km$cluster) %>%
+  dplyr::select(POLY_ID, cluster) %>%
+  left_join(shapefile,.,by='POLY_ID')
+
+ggplot()+
+  geom_sf(data=shapefile_cluster,aes(fill=as.character(cluster)))+
+  scale_fill_manual(values=c("lightblue","lightgreen"),name='Cluster')+
+  theme_void()
+
+```
