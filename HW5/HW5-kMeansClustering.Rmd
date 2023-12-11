@@ -28,7 +28,7 @@ options(scipen=999)
 ```
 
 # Introduction
-Complex real estate markets influence the prices of homes, and determining what features are most impactful to the value goes beyond physical characteristics. In this report we analyze a data set containing variables for 1720 block groups in Philadelphia. The variables include:
+Complex real estate markets influence the prices of homes, and determining what features are most impactful to the value goes beyond physical characteristics. In this report, we analyze a data set containing variables for 1720 block groups in Philadelphia. The variables include:
 
 - Median house value (MEDHVAL),
 - Median household income (MEDHHINC),
@@ -36,13 +36,7 @@ Complex real estate markets influence the prices of homes, and determining what 
 - Percent of single/detached housing units (PCTSINGLES), and
 - Percent of vacant housing units (PCTVACANT).
 
-We use the K-means clustering method to uncover patterns and relationships within the data. K-means clustering can help identify distinct groups of block groups with similar characteristics, facilitating a deeper understanding of the spatial and socioeconomic landscape of Philadelphia. Through this analysis, we can answer questions such as:
-
-- Are there distinct neighborhoods in terms of socioeconomic status?
-- How does educational attainment correlate with housing values and income levels?
-- Are there areas with notably high vacancy rates, and how do they relate to other factors?  
-This clustering approach can reveal insights into the city's urban structure.
-
+We use the K-means clustering method to uncover patterns and relationships within the data. K-means clustering can help identify distinct groups of block groups with similar characteristics based on our variables. While the method requires initially choosing a number of clusters to sort the data, K-means clustering helps us to consider the mean value per variable for each cluster, which we can then use to categorize each cluster with a more descriptive name to better understand the data.
 
 # Methods
 
@@ -50,7 +44,7 @@ This clustering approach can reveal insights into the city's urban structure.
 
 The K-means algorithm, a form of cluster analysis, is used for large data sets with numeric variables. The method uses an iterative process that creates a division of objects into non-overlapping subsets (clusters) such that each object is in exactly one cluster. Before the six-step K-means process is initiated, the total number of clusters (K) must be specified. The six-step process is as follow:
  
-- Randomly select K data points as cluster
+- Randomly select K data points as cluster centers
 - Calculate the distance (typically, Euclidean) between each data point and K cluster centroid.
 - Assign each data point to the nearest cluster based on the calculated distances. The "nearest" means the centroid with the least distance to the data point.
 - After all data points are assigned to a certain cluster, new cluster centers are recalculated by taking the average of all points assigned to each cluster.
@@ -58,6 +52,8 @@ The K-means algorithm, a form of cluster analysis, is used for large data sets w
 - Finally, if no data point was reassigned, stop. Otherwise repeat from step 3.
  
 K-means aims to minimize the within-cluster sum of squares errors (SSE). The SSE is a measure of how close each data point in a cluster is to the cluster's centroid. SSE is calculated by computing the squared distance between each observation and the centroid of its nearest cluster and summing these squared distances. The overall K-means SSE is computed by summing these SSEs across clusters.
+
+For more confidence in the clustering solution that the K-means algorithm chooses, running the algorithm multiple times with different initial centroid values can help select the result which yields the lowest SSE. In our analysis of block groups in Philadelphia, we run the K-means cluster algorithm 25 times and select the result which yields the lowest SSE. 
  
 Although K-means is a useful form of cluster analysis, it has its limitations. These limitations include:
  
@@ -65,15 +61,16 @@ Although K-means is a useful form of cluster analysis, it has its limitations. T
 - Not being suitable for categorical data because it relies on Euclidean distances, which are not defined for categorical attributes.
 - A chance of encountering difficulties when clusters are of differing sizes, densities, or non-globular shapes.
 - Being unable to handle noisy data and outliers.
-- Occasionally, the final clustering solution will be incorrect, because K-means will find the local minimum of SSE rather than the global minimum.
+- Occasionally, the final clustering solution will be incorrect, because K-means will find the local minimum of SSE rather than the global minimum. 
 
 ## Additional Clustering Methods
 
-Other clustering algorithms include Hierarchical clustering and density-based clustering (DBSCAN). 
+Other clustering algorithms include hierarchical clustering and density-based clustering (DBSCAN). 
 
-Hierarchical clustering is a method of cluster analysis which seeks to build a hierarchy of clusters by either successively dividing or combining clusters based on distance metrics until a desired structure is achieved. Unlike K-means, it is not necessary to input the number of clusters. any number of clusters may be chosen based on a dendrogram, or a cluster tree. Hierarchical clustering does not work well for large data sets, so it would not be an appropriate method for this use case given that the dataset is large.
+Hierarchical clustering is a method of cluster analysis which seeks to build a hierarchy of clusters by either successively dividing or combining clusters based on distance metrics until a desired structure is achieved. Unlike K-means, it is not necessary to input the number of clusters. Any number of clusters may be chosen based on a dendrogram, or a cluster tree. Hierarchical clustering does not work well for large data sets, so it would not be an appropriate method for this use case given that the dataset is large.
 
 DBSCAN can identify irregular cluster shapes, observations that have many neighbors nearby grouped together in a single cluster, and observations whose nearest neighbors are too far away which are outliers and aren’t part of any cluster. DBSCAN would likely be appropriate for this data set. This method could potentially cluster points that reflect neighborhoods or regions of Philadelphia when they share similar characteristics - however, if DBSCAN generates too many clusters, it may hamper interpretability.
+
 
 # Results
 
@@ -116,7 +113,7 @@ ggplot(data=bind)+
 
 ### NbClust
 
-NbClust identifies 2 as the optimal numbers of clusters based on criteria from 26 of the methods considered most relevant by the package. By plotting the outcomes, we see that 8 of the 26 methods chose 2 as the optimal number of clusters. The next highest chosen number is 15 clusters, which was chosen by 6 of the 26 methods.
+NbClust identifies 2 as the optimal numbers of clusters based on criteria from 26 of the methods considered most relevant by the package. By plotting the outcomes, we see that 8 of the 26 methods chose 2 as the optimal number of clusters. The next highest chosen number is 15 clusters, which was picked by 6 of the 26 methods.
 
 ```{r NbClust, cache=TRUE, results='hide', include = FALSE}
 set.seed(1234)
@@ -161,7 +158,7 @@ We then examine the means of each of our variables for our two clusters. The res
 * Cluster 2 block groups average less than half the percent of vacant housing units compared to Cluster 1, at 4.8% versus 12.5%
 * The average percent of single/detached housing units in Cluster 2 block groups is over three times higher than Cluster 1, at 22.3% compared to 6.8%
 
-The variable means for our two clusters indicate that the block groups identified for Cluster 2 are wealthier, more educated, and have higher demand to live in them compared to Cluster 1. Given the disparities, the cluster solution appears to make sense with the two clusters. Based on this output, we choose to identify the two clusters with the following titles:
+The variable means for our two clusters indicate that the block groups identified for Cluster 2 are wealthier, more highly educated, and have higher demand to live in them compared to Cluster 1. Given the disparities, the cluster solution appears to make sense with the two clusters. Based on this output, we choose to identify the two clusters with the following titles:
 
 * Cluster 1: Limited Gentrification Block Groups
 * Cluster 2: High Gentrification Block Groups
@@ -178,7 +175,7 @@ HU: Housing Units
 ### Cluster Map Results
 
 
-By mapping our observations based on the two clusters, we observed that our K-means clusters appear to also cluster in space, indicating likely spatial autocorrelation. Generally speaking, there are clusters around Center City, Northwest Philly, and Northeast Philly, with smaller clusters in University City, the northern edge of North Philly and the western Edge of West Philly.
+By mapping our observations based on the two clusters, we observed that our K-means clusters appear to also cluster in space, indicating likely spatial autocorrelation. Generally speaking, Cluster 2 comprises areas around Center City, Northwest Philly, and Northeast Philly, with smaller areas in University City, the northern edge of North Philly and the western edge of West Philly. Cluster 1 covers most of the rest of the city. 
 
 These clusters reinforce the title choices to describe Cluster 1 and Cluster 2. Generally speaking, areas in Cluster 2 such as Center City, University City, and Northwest Philly are more gentrified compared to Cluster 1 areas, with more expensive real estate and wealthier households that hold higher education degrees. Northeastern and northwestern neighborhoods in Philly also have a more suburban feel, with higher proportions of single family detached homes.
 

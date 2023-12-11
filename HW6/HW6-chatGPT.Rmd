@@ -1,0 +1,217 @@
+---
+title: "HW6-Text Mining"
+author: "Richard Barad, Dave Drennan, Jarred Randall"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+date: "`r Sys.Date()`"
+mainfont: Times New Roman
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Setup
+
+```{r libraries, message=FALSE, warning=FALSE}
+library(wordcloud)
+library(text)
+library(tm)
+library(SnowballC)
+library(words)
+library(NbClust)
+library(stringr)
+library(dplyr)
+library(syuzhet)
+library(corpora)
+library(kableExtra)
+
+```
+
+# Data
+
+```{r data}
+set.seed(1234)
+
+#reads full dataset for emails (more than 500k)
+data <- read.csv("Data/emails_sample.csv")
+
+#takes random sample of 100 emails
+slice <- slice_sample(data, n=100)
+
+```
+
+## Corpus
+
+```{r corpus}
+# myCorpus for analysis, orignal used to check for cleaning 
+myCorpus <- tm::Corpus(VectorSource(slice$message))
+original <- tm::Corpus(VectorSource(slice$message))
+
+# sets all text to lowercase
+myCorpus <- tm_map(myCorpus, content_transformer(tolower))
+```
+
+```{r cleaningfunctions}
+# Defining the toSpace function
+toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+# Defining the remApostrophe function
+remApostrophe <- content_transformer(function(x,pattern) gsub(pattern, "", x))
+```
+
+### Corpus Text Cleaning
+
+```{r cleaning}
+# Removing special characters
+myCorpus <- tm_map(myCorpus, toSpace, "@")
+myCorpus <- tm_map(myCorpus, toSpace, "/")
+myCorpus <- tm_map(myCorpus, toSpace, "]")
+myCorpus <- tm_map(myCorpus, toSpace, "$")
+myCorpus <- tm_map(myCorpus, toSpace, "—")
+myCorpus <- tm_map(myCorpus, toSpace, "‐")
+myCorpus <- tm_map(myCorpus, toSpace, "”")
+myCorpus <- tm_map(myCorpus, toSpace, "‘")
+myCorpus <- tm_map(myCorpus, toSpace, "“")
+myCorpus <- tm_map(myCorpus, toSpace, "‘")
+myCorpus <- tm_map(myCorpus, remApostrophe, "’")
+# Removing numbers
+myCorpus <- tm::tm_map(myCorpus, removeNumbers)
+# Removing punctuation
+myCorpus <- tm_map(myCorpus, removePunctuation)
+# Removing stop words
+myCorpus <- tm_map(myCorpus, removeWords, stopwords("english"))
+# Removing words that seemed commong but unhelpful to keep (much of it is email header)
+myCorpus <- tm_map(myCorpus, removeWords,c("javamailevans thyme", "messageid", "date", "subject", "mimeversion", "contenttype text plain charsetusascii", "contenttransferencoding bit", "xfrom", "xto", "xcc", "xbcc", "xfolder", "xorigin", "xfilename", "enroncom", "hou ect ect", "cc", "bcc"))
+# Removes unnecessary extra white space
+myCorpus <- tm_map(myCorpus, stripWhitespace)
+# Removes word stems for consistency of words (e.g. -ing)
+myCorpus <- tm_map(myCorpus, stemDocument)
+
+# To check
+#cat(content(myCorpus[[3]]), sep = "\n")
+#cat(content(original[[3]]), sep = "\n")
+
+# process to remove words not found in Scrabble dictionary
+tdm <- TermDocumentMatrix(myCorpus)
+m <- as.matrix(tdm)
+rownames(m) <- tdm$dimnames$Terms
+dictionary <- as.character(words::words$word)
+row_names <- rownames(m)
+in_dictionary <- row_names %in% dictionary
+remove <- as.character(row_names[!in_dictionary])
+
+num_observations <- as.numeric(length(remove))  # Total number of observations
+chunk_size <- 1000                              # Number of observations to display at a time
+
+for (i in seq(1, num_observations, chunk_size)) {
+  start <- i
+  end <- i + chunk_size - 1
+  end <- ifelse(end > num_observations, num_observations, end)
+  myCorpus <- tm_map(myCorpus, removeWords, remove[start:end])  
+}
+
+dtm_cleaned <- DocumentTermMatrix(myCorpus)
+
+m <- as.matrix(dtm_cleaned)
+colnames(m) <- dtm_cleaned$dimnames$Terms
+
+# To check
+# cat(content(myCorpus[[3]]), sep = "\n")
+
+```
+
+# Frequency Word Cloud
+
+```{r wordcloud}
+# How many times each term appears across all emails
+cs <- as.matrix(colSums(m))             
+rownames(cs) <- dtm_cleaned$dimnames$Terms
+tab <- as.matrix(table(cs))
+
+# Creates word cloud for words appearing at least 15 times
+wordcloud(myCorpus, min.freq=15)
+
+
+```
+
+# Sentiment Analysis
+
+```{r sentiment}
+
+# creates dataframe
+emails_df <- as.data.frame(t(m[1:100,]))
+emails_df$Term <- as.vector(rownames(emails_df))
+
+# sums frequency
+emails_df <- emails_df %>% 
+      mutate(Term_Frequency = rowSums(across(where(is.numeric))))
+
+rownames(emails_df) <- 1:nrow(emails_df)
+
+# creates sentiment using NRC dictionary
+nrc_sentiment <- get_nrc_sentiment(emails_df$Term)
+
+emails_sentiment <- cbind(emails_df, nrc_sentiment)
+
+# Select the columns to be multiplied (last ten columns)
+cols_to_multiply <- names(emails_sentiment)[103:112]
+
+# Multiply the last ten columns (sentiments) by the first column (Term_Frequency)
+emails_sentiment[, cols_to_multiply] <- emails_sentiment[, cols_to_multiply] * emails_sentiment$Term_Frequency
+```
+
+## Plotting NRC Lexicon Sentiment Analysis
+
+```{r graphs}
+email_sentiment_total <- t(as.matrix(colSums(emails_sentiment[103:112])))
+barplot(email_sentiment_total, las=2, ylab='Count', main='Sentiment Scores')
+
+```
+
+## Comparing Plots of Different Lexicons
+
+Uses NRC, AFINN, Bing, and Syuzhet lexicons
+
+```{r sentiment2}
+
+# Comparing frequencies using different sentiment dictionaries
+
+emails_df$Syuzhet <- as.matrix(get_sentiment(emails_df$Term, method="syuzhet"))
+hist(emails_df$Syuzhet)
+emails_df$Bing <- as.matrix(get_sentiment(emails_df$Term, method="bing"))
+hist(emails_df$Bing)
+emails_df$AFINN <- as.matrix(get_sentiment(emails_df$Term, method="afinn"))
+hist(emails_df$AFINN)
+emails_df$NRC <- as.matrix(get_sentiment(emails_df$Term, method="nrc"))   #There are Negative and Positive sentiments in the NRC output above.
+hist(emails_df$NRC)
+
+```
+
+## Positive, Neutral, and Negative Sentiment Counts by Lexicon
+
+```{r warning=FALSE, message=FALSE, cache=FALSE}
+sentiment_columns <- emails_df[ , 103:106]
+sentiment_columns <- data.frame(lapply(sentiment_columns, sign))
+sentiment_columns <- data.frame(lapply(sentiment_columns, as.factor))
+
+# Provide raw frequencies of positive, neutral, and negative for different sentiment dictionaries
+a <- sapply(sentiment_columns, function(x) if("factor" %in% class(x)) {table(x)})
+
+# Provide proportions of positive, neutral, and negative for different sentiment dictionaries
+b <- sapply(sentiment_columns, function(x) if("factor" %in% class(x)) {prop.table(table(x))})
+
+a %>% kbl() %>%
+  kable_classic()%>%
+  kable_styling(latex_options = "HOLD_position")
+
+b %>% kbl() %>%
+  kable_classic()%>%
+  kable_styling(latex_options = "HOLD_position")
+
+```
