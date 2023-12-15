@@ -17,6 +17,19 @@ editor_options:
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
+# Introduction & Methods
+
+This report employs several text mining techniques to analyze the Enron Email Dataset - emails obtained by the Federal Energy Regulatory Commission to investigate the financial scandal of the Enron Corporation in the early 2000s. This data set is downloadable from the data science website Kaggle.  
+
+While the original data set includes over 500,000 emails, we take a sample of 100 emails and combine them into a corpus—a large and structured set of texts. The process begins by cleaning the corpus, which includes the removal of extraneous characters, numbers, and punctuation, followed by the application of natural language processing techniques such as stemming. Stemming removes common word suffixes and endings (e.g. “-ing” or “-ed”), which can help highlight more unique words in the text analysis and avoid crowding them out with different variations of the same common word or words. 
+
+We also remove stop words—commonly used words such as "the", "is", and "and", which offer little value in our analysis due to their high frequency, but low informational content. The cleaned corpus is then visualized through a word cloud, which is a graphical representation of text data where the size of each word indicates its frequency or importance in the dataset.
+
+Subsequently, we conduct a sentiment analysis to evaluate the emotional tone behind the words used in the Enron emails. Sentiment analysis is a method used to identify affective states and subjective information by assigning sentiment scores to the terms within the text. This score can range from negative to positive and is often derived from predefined lists of words in sentiment lexicons—dictionaries where words are mapped to sentiment categories. The sentiment analysis in this study is executed using one or more such lexicons.
+
+By combining these methodologies, the report aims to uncover not just the frequency of word usage but also the underlying sentiments, potentially offering insights into the corporate culture of Enron during its final years.
+
+
 # Setup
 
 ```{r libraries, message=FALSE, warning=FALSE}
@@ -50,7 +63,7 @@ slice <- slice_sample(data, n=100)
 ## Corpus
 
 ```{r corpus}
-# myCorpus for analysis, orignal used to check for cleaning 
+# myCorpus for analysis, orignal used to check for cleaning
 myCorpus <- tm::Corpus(VectorSource(slice$message))
 original <- tm::Corpus(VectorSource(slice$message))
 
@@ -66,6 +79,12 @@ remApostrophe <- content_transformer(function(x,pattern) gsub(pattern, "", x))
 ```
 
 ### Corpus Text Cleaning
+
+Prior to analyzing the text from the emails, we first clean the text. Our cleaning steps include removing special characters, numbers, punctuation, whitespace, and word stems. We also remove any stop words - examples of stop words include words like “a”, “the”, “is” and “are”. We remove abbreviations and e-mail metadata which is present in the email header (e.g: “cc”, “bcc”,”date”,”subject”, .etc). Lastly, we remove all words which are not present in the Scrabble dictionary to focus on common English words. 
+
+An additional step is included of creating a term matrix, which aggregates term counts across emails. This will be used to create a word cloud.
+
+The output below shows an example of what part of the text in the first email looks like after all cleaning steps have been completed. 
 
 ```{r cleaning}
 # Removing special characters
@@ -86,7 +105,7 @@ myCorpus <- tm::tm_map(myCorpus, removeNumbers)
 myCorpus <- tm_map(myCorpus, removePunctuation)
 # Removing stop words
 myCorpus <- tm_map(myCorpus, removeWords, stopwords("english"))
-# Removing words that seemed commong but unhelpful to keep (much of it is email header)
+# Removing words that seemed common but unhelpful to keep (much of it is email header)
 myCorpus <- tm_map(myCorpus, removeWords,c("javamailevans thyme", "messageid", "date", "subject", "mimeversion", "contenttype text plain charsetusascii", "contenttransferencoding bit", "xfrom", "xto", "xcc", "xbcc", "xfolder", "xorigin", "xfilename", "enroncom", "hou ect ect", "cc", "bcc"))
 # Removes unnecessary extra white space
 myCorpus <- tm_map(myCorpus, stripWhitespace)
@@ -107,7 +126,7 @@ in_dictionary <- row_names %in% dictionary
 remove <- as.character(row_names[!in_dictionary])
 
 num_observations <- as.numeric(length(remove))  # Total number of observations
-chunk_size <- 1000                              # Number of observations to display at a time
+chunk_size <- 1000                          	# Number of observations to display at a time
 
 for (i in seq(1, num_observations, chunk_size)) {
   start <- i
@@ -122,15 +141,17 @@ m <- as.matrix(dtm_cleaned)
 colnames(m) <- dtm_cleaned$dimnames$Terms
 
 # To check
-# cat(content(myCorpus[[3]]), sep = "\n")
+cat(content(myCorpus[[1]]), sep = "\n")
 
 ```
 
 # Frequency Word Cloud
 
+The word cloud helps us determine which words occurred most frequently across the sample of 100 emails. Only words which occur more than 15 times are included in the word cloud. Some of the most frequently used words include the words error, attempt, email, please, and time.
+
 ```{r wordcloud}
 # How many times each term appears across all emails
-cs <- as.matrix(colSums(m))             
+cs <- as.matrix(colSums(m))        	 
 rownames(cs) <- dtm_cleaned$dimnames$Terms
 tab <- as.matrix(table(cs))
 
@@ -149,8 +170,8 @@ emails_df <- as.data.frame(t(m[1:100,]))
 emails_df$Term <- as.vector(rownames(emails_df))
 
 # sums frequency
-emails_df <- emails_df %>% 
-      mutate(Term_Frequency = rowSums(across(where(is.numeric))))
+emails_df <- emails_df %>%
+  	mutate(Term_Frequency = rowSums(across(where(is.numeric))))
 
 rownames(emails_df) <- 1:nrow(emails_df)
 
@@ -168,20 +189,26 @@ emails_sentiment[, cols_to_multiply] <- emails_sentiment[, cols_to_multiply] * e
 
 ## Plotting NRC Lexicon Sentiment Analysis
 
+The graph below shows the number of words present in e-mails based on the sentiment assigned to the word using the NRC lexicon. The most common sentiments associated with words used in e-mails are anticipation and trust. The least common sentiments are anger, disgust, feat, and surprise.
+
 ```{r graphs}
-email_sentiment_total <- t(as.matrix(colSums(emails_sentiment[103:112])))
+
+#I dropped positive and negative since I found the double counting a little confusing to interpret / explain. 
+
+email_sentiment_total <- t(as.matrix(colSums(emails_sentiment[103:110])))
 barplot(email_sentiment_total, las=2, ylab='Count', main='Sentiment Scores')
 
 ```
 
 ## Comparing Plots of Different Lexicons
 
-Uses NRC, AFINN, Bing, and Syuzhet lexicons
+The histograms below show how the words from the e-mails are classified using different lexicons. The Bing lexicons classify words as either positive (1), negative (-1) or neutral (0). The Syuzhet lexicon assigns sentiment of words on a -1 to 1 scale, with 1 indicating a very positive sentiment and  -1 indicating a very negative sentiment. The AFINN lexicon assigns scores ranging from -5 (most negative) to 5 (most positive). Based on these results we can observe that the majority of words in e-mails are associated with neutral sentiments. The NRC lexicon used previously is also shown again as a comparison.
 
 ```{r sentiment2}
 
 # Comparing frequencies using different sentiment dictionaries
 
+par(mfrow=c(2,2))
 emails_df$Syuzhet <- as.matrix(get_sentiment(emails_df$Term, method="syuzhet"))
 hist(emails_df$Syuzhet)
 emails_df$Bing <- as.matrix(get_sentiment(emails_df$Term, method="bing"))
@@ -194,6 +221,10 @@ hist(emails_df$NRC)
 ```
 
 ## Positive, Neutral, and Negative Sentiment Counts by Lexicon
+
+The table below shows the number of words associated with negative, positive, and neutral sentiments according to the four sentiment dictionaries. The table reinforces our previous conclusion that words with neutral sentiments are the most commonly used in our sample emails. The Syuzhet, AFINN, and NRC lexicons indicate that more positive words are present than negative words. However, the Bing lexicon indicates that more words with negative sentiments are present. We can also observe that the Syuzhet and NRC appear to classify more words to a sentiment that is not neutral when compared to the other two lexicons. 
+
+The second table below shows the same results, but presents the sentiments as the percent of the total words instead of as a raw count.
 
 ```{r warning=FALSE, message=FALSE, cache=FALSE}
 sentiment_columns <- emails_df[ , 103:106]
@@ -213,5 +244,10 @@ a %>% kbl() %>%
 b %>% kbl() %>%
   kable_classic()%>%
   kable_styling(latex_options = "HOLD_position")
-
 ```
+
+# Discussion
+
+These findings indicate that the sample of fifty random emails do not suggest a strong positive or strong negative sentiment regarding words used in Enron emails. The majority of words are neutral. Additionally, the number of positive words exceeds the number of negative words according to three out of four lexicons. In order to gain further insights, it would be useful to repeat this analysis on a larger sample of emails to see if the conclusions still hold true when using a larger sample size.
+
+It could also be useful to repeat the sentiment analysis at the department level, and compare the sentiment of emails within the different departments of Enron to determine if some departments have a greater tendency to use words with negative sentiments. Likewise, adding a time element to compare words from different months or years could also show additional insights into the downfall of Enron.
